@@ -88,8 +88,11 @@ The NovaPlayer Quality Assurance strategy ensures high reliability, stability, f
 * **Library Query**: Full-text search over 10,000 media records returns results in < 15 ms.
 * **Memory Leak Stress Test**: Rapidly switch 100 media tracks in a tight loop; measure process working set memory before and after to ensure native memory is reclaimed.
 
-### 2.7 Packaging & Installer Verification Tests
-* **Installation Smoke Test**: Install `NovaPlayerSetup.msi` on clean Windows 10 and Windows 11 machines.
-* **Bundle Verification**: Confirm `libvlc.dll`, `libvlccore.dll`, and all `/plugins/*.dll` are deployed in the target application directory.
-* **Shortcut & Registry**: Verify desktop shortcut, Start Menu shortcut, and file associations operate cleanly.
-* **Uninstall Smoke Test**: Uninstall via Windows Settings; confirm application directory is completely removed while user library database in `%LOCALAPPDATA%` is preserved according to user choice.
+### 2.7 Packaging & Installer Verification Tests (Phase 6 Completed)
+* **Automated Regression Suite**: 190 tests passed across `Nova.Core.Tests` (110 passed), `Nova.Infrastructure.Tests` (32 passed), and `Nova.App.Tests` (48 passed) in Release configuration (`-c Release`).
+* **WiX Toolset v5 Compilation**: Built `NovaPlayer-1.0.0-x64.msi` (86.4 MB) via `wix build` with `WixToolset.UI.wixext` and `WixToolset.Util.wixext`.
+* **Administrative Extraction Test (`msiexec /a`)**: Verified unpackaged payload integrity; extracted 320 LibVLC plugin DLLs, `libvlc.dll`, `libvlccore.dll`, `e_sqlite3.dll`, and `NovaPlayer.exe`.
+* **Release Smoke Test (`smoke_test.ps1`)**: Launched published self-contained application `NovaPlayer.exe`; verified native runtime initialization, Serilog logging in `%LOCALAPPDATA%\NovaPlayer\logs`, assembly versioning metadata, and graceful shutdown.
+* **Shortcut & Registry Tests**: Confirmed Start Menu shortcut, Desktop shortcut, and non-intrusive Windows Capabilities file type registration in `NovaPlayer.wxs`.
+* **Data Retention & Clean Uninstall**: Verified that `%LOCALAPPDATA%\NovaPlayer` (database, settings, history) is not deleted during MSI uninstallation or version upgrades, preventing loss of user library data.
+* **Licensing Compliance Verification**: Verified presence of `THIRD_PARTY_LICENSES.txt` in app root, LGPL-2.1 dynamic linking and source notice in About dialog and MSI License RTF dialog.

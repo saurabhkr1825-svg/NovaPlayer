@@ -120,4 +120,16 @@ public class PlayerViewModelTests
         vm.ToggleFullscreen();
         vm.IsFullscreen.Should().BeFalse();
     }
+
+    [Fact]
+    public void ShowAbout_ShouldTriggerShowAboutRequested()
+    {
+        using var vm = new PlayerViewModel(_mockPlaybackService.Object);
+        bool eventFired = false;
+        vm.ShowAboutRequested += () => eventFired = true;
+
+        vm.ShowAboutCommand.Execute(null);
+
+        eventFired.Should().BeTrue();
+    }
 }

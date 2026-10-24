@@ -8,7 +8,26 @@
     <RootNamespace>Nova.App</RootNamespace>
     <AssemblyName>NovaPlayer</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Resources\NovaPlayer.ico</ApplicationIcon>
+
+    <!-- Branding and Assembly Metadata -->
+    <Title>NovaPlayer</Title>
+    <Product>NovaPlayer</Product>
+    <Description>Modern, high-performance Windows desktop media player</Description>
+    <Company>NovaPlayer Open Source Contributors</Company>
+    <Authors>NovaPlayer Contributors</Authors>
+    <Copyright>Copyright © 2026 NovaPlayer Contributors</Copyright>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\NovaPlayer.ico" />
+    <None Update="THIRD_PARTY_LICENSES.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Nova.Core\Nova.Core.csproj" />

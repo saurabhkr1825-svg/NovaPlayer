@@ -23,6 +23,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     public event Action<MediaDetails>? ShowMediaInfoRequested;
     public event Action? ShowEqualizerRequested;
     public event Action? OpenUrlRequested;
+    public event Action? ShowAboutRequested;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WindowTitle))]
@@ -829,6 +830,12 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     public void ShowEqualizer()
     {
         ShowEqualizerRequested?.Invoke();
+    }
+
+    [RelayCommand]
+    public void ShowAbout()
+    {
+        ShowAboutRequested?.Invoke();
     }
 
     [RelayCommand]

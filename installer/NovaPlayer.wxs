@@ -1,0 +1,120 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <?ifndef PublishDir?>
+    <?define PublishDir = "..\dist\app" ?>
+  <?endif?>
+  <?ifndef ResourceDir?>
+    <?define ResourceDir = "..\src\Nova.App\Resources" ?>
+  <?endif?>
+
+  <Package Name="NovaPlayer"
+           Manufacturer="NovaPlayer Open Source Contributors"
+           Version="1.0.0.0"
+           UpgradeCode="A8E148B4-66F5-46D9-BA7D-1F05F9A64582"
+           Scope="perMachine"
+           Language="1033">
+
+    <SummaryInformation Description="NovaPlayer Desktop Media Player Installer"
+                        Manufacturer="NovaPlayer Open Source Contributors" />
+
+    <!-- Upgrade Logic: Prevent downgrades, cleanly upgrade older versions -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of NovaPlayer is already installed. Setup will now exit." />
+
+    <!-- Media / Cab Configuration -->
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- Application Icon & Add/Remove Programs Properties -->
+    <Icon Id="NovaPlayerIcon" SourceFile="$(var.ResourceDir)\NovaPlayer.ico" />
+    <Property Id="ARPPRODUCTICON" Value="NovaPlayerIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/nova-player/novaplayer" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/nova-player/novaplayer" />
+    <Property Id="ARPCOMMENTS" Value="Modern, high-performance Windows desktop media player" />
+
+    <!-- Directory Structure -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="NovaPlayer">
+        <!-- All Application & Native LibVLC Files -->
+        <Files Include="$(var.PublishDir)\**" />
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Start Menu Shortcut -->
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="NovaPlayer">
+        <Component Id="AppShortcut" Guid="7CE4D7B4-633E-41F6-BFE4-0BFDDE05DFAC">
+          <Shortcut Id="StartMenuShortcut"
+                    Name="NovaPlayer"
+                    Description="NovaPlayer Modern Media Player"
+                    Target="[INSTALLFOLDER]NovaPlayer.exe"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="NovaPlayerIcon" />
+          <RemoveFolder Id="CleanUpStartMenuFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
+          <RegistryValue Root="HKCU" Key="Software\NovaPlayer" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Desktop Shortcut -->
+    <StandardDirectory Id="DesktopFolder">
+      <Component Id="DesktopShortcutComp" Guid="418C61D4-08D6-4552-9A92-62C27AE16E34">
+        <Shortcut Id="DesktopShortcut"
+                  Name="NovaPlayer"
+                  Description="NovaPlayer Modern Media Player"
+                  Target="[INSTALLFOLDER]NovaPlayer.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="NovaPlayerIcon" />
+        <RegistryValue Root="HKCU" Key="Software\NovaPlayer" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <!-- File Associations & Windows Capabilities Registration (Non-Intrusive) -->
+    <Component Id="RegistryRegistration" Guid="3F8F8175-E565-42EB-BEF6-FA517E91D4C3" Directory="INSTALLFOLDER">
+      <!-- ProgID Definition -->
+      <RegistryValue Root="HKLM" Key="Software\Classes\NovaPlayer.AssocFile" Value="NovaPlayer Media File" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\NovaPlayer.AssocFile\DefaultIcon" Value="&quot;[INSTALLFOLDER]NovaPlayer.exe&quot;,0" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\NovaPlayer.AssocFile\shell\open\command" Value="&quot;[INSTALLFOLDER]NovaPlayer.exe&quot; &quot;%1&quot;" Type="string" />
+
+      <!-- Windows Capabilities -->
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities" Name="ApplicationName" Value="NovaPlayer" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities" Name="ApplicationDescription" Value="Modern, high-performance Windows desktop media player" Type="string" />
+
+      <!-- Supported File Formats -->
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities\FileAssociations" Name=".mp4" Value="NovaPlayer.AssocFile" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities\FileAssociations" Name=".mkv" Value="NovaPlayer.AssocFile" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities\FileAssociations" Name=".avi" Value="NovaPlayer.AssocFile" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities\FileAssociations" Name=".mov" Value="NovaPlayer.AssocFile" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities\FileAssociations" Name=".wmv" Value="NovaPlayer.AssocFile" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities\FileAssociations" Name=".webm" Value="NovaPlayer.AssocFile" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities\FileAssociations" Name=".mp3" Value="NovaPlayer.AssocFile" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities\FileAssociations" Name=".flac" Value="NovaPlayer.AssocFile" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities\FileAssociations" Name=".wav" Value="NovaPlayer.AssocFile" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities\FileAssociations" Name=".aac" Value="NovaPlayer.AssocFile" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities\FileAssociations" Name=".ogg" Value="NovaPlayer.AssocFile" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities\FileAssociations" Name=".m4a" Value="NovaPlayer.AssocFile" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities\FileAssociations" Name=".m3u" Value="NovaPlayer.AssocFile" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer\Capabilities\FileAssociations" Name=".m3u8" Value="NovaPlayer.AssocFile" Type="string" />
+
+      <!-- Registered Applications entry -->
+      <RegistryValue Root="HKLM" Key="Software\RegisteredApplications" Name="NovaPlayer" Value="Software\NovaPlayer\Capabilities" Type="string" />
+
+      <!-- OpenWithProgids (enables Open With without forcing default takeover) -->
+      <RegistryValue Root="HKLM" Key="Software\Classes\.mp4\OpenWithProgids" Name="NovaPlayer.AssocFile" Value="" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\.mkv\OpenWithProgids" Name="NovaPlayer.AssocFile" Value="" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\.avi\OpenWithProgids" Name="NovaPlayer.AssocFile" Value="" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\.mov\OpenWithProgids" Name="NovaPlayer.AssocFile" Value="" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\.mp3\OpenWithProgids" Name="NovaPlayer.AssocFile" Value="" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\.flac\OpenWithProgids" Name="NovaPlayer.AssocFile" Value="" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\.wav\OpenWithProgids" Name="NovaPlayer.AssocFile" Value="" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\.m3u\OpenWithProgids" Name="NovaPlayer.AssocFile" Value="" Type="string" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\.m3u8\OpenWithProgids" Name="NovaPlayer.AssocFile" Value="" Type="string" />
+
+      <RegistryValue Root="HKLM" Key="Software\NovaPlayer" Name="FileAssocRegistered" Value="1" Type="integer" KeyPath="yes" />
+    </Component>
+
+    <!-- WiX Standard User Interface -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="installer\License.rtf" />
+
+  </Package>
+</Wix>

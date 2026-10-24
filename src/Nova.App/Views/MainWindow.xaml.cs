@@ -66,6 +66,7 @@ public partial class MainWindow : Window
         _viewModel.ShowMediaInfoRequested += OnShowMediaInfoRequested;
         _viewModel.ShowEqualizerRequested += OnShowEqualizerRequested;
         _viewModel.OpenUrlRequested += OnOpenUrlRequested;
+        _viewModel.ShowAboutRequested += OnShowAboutRequested;
     }
 
     private void OnRequestAddDownloadDialog()
@@ -118,6 +119,15 @@ public partial class MainWindow : Window
             _viewModel.ActiveTabIndex = 0;
             _ = _viewModel.PlayUrlAsync(dialog.ValidatedUrl);
         }
+    }
+
+    private void OnShowAboutRequested()
+    {
+        var dialog = new Dialogs.AboutDialog
+        {
+            Owner = this
+        };
+        dialog.ShowDialog();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -390,6 +400,11 @@ public partial class MainWindow : Window
 
             case Key.R:
                 _viewModel.CycleRepeatModeCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            case Key.F1:
+                _viewModel.ShowAboutCommand.Execute(null);
                 e.Handled = true;
                 break;
         }
@@ -762,6 +777,7 @@ public partial class MainWindow : Window
         _viewModel.ShowMediaInfoRequested -= OnShowMediaInfoRequested;
         _viewModel.ShowEqualizerRequested -= OnShowEqualizerRequested;
         _viewModel.OpenUrlRequested -= OnOpenUrlRequested;
+        _viewModel.ShowAboutRequested -= OnShowAboutRequested;
         if (_viewModel.Downloads != null)
         {
             _viewModel.Downloads.RequestAddDownloadDialog -= OnRequestAddDownloadDialog;

@@ -1,0 +1,149 @@
+================================================================================
+NovaPlayer - Third-Party Open Source Licenses & Attribution Notices
+================================================================================
+
+NovaPlayer incorporates open-source software libraries. This document provides
+the required copyright notices, permission notices, and distribution conditions
+for third-party components included in or distributed with NovaPlayer.
+
+--------------------------------------------------------------------------------
+1. SUMMARY OF THIRD-PARTY DEPENDENCIES
+--------------------------------------------------------------------------------
+
+* LibVLC (Native Runtime)
+  Version: 3.0.21
+  License: GNU Lesser General Public License v2.1 or later (LGPL-2.1)
+  Copyright: (C) VideoLAN and VLC authors
+  Upstream: https://code.videolan.org/videolan/vlc
+
+* LibVLCSharp & LibVLCSharp.WPF
+  Version: 3.9.2
+  License: GNU Lesser General Public License v2.1 or later (LGPL-2.1)
+  Copyright: (C) 2018-2024 VideoLAN and LibVLCSharp authors
+  Upstream: https://code.videolan.org/videolan/LibVLCSharp
+
+* Microsoft.Data.Sqlite
+  Version: 8.0.10
+  License: MIT License
+  Copyright: (C) Microsoft Corporation. All rights reserved.
+  Upstream: https://github.com/dotnet/efcore
+
+* Microsoft.Extensions.DependencyInjection
+  Version: 8.0.1
+  License: MIT License
+  Copyright: (C) Microsoft Corporation. All rights reserved.
+  Upstream: https://github.com/dotnet/runtime
+
+* CommunityToolkit.Mvvm
+  Version: 8.3.2
+  License: MIT License
+  Copyright: (C) .NET Foundation and Contributors
+  Upstream: https://github.com/CommunityToolkit/dotnet
+
+* SQLitePCLRaw
+  Version: 2.1.10
+  License: Apache License 2.0
+  Copyright: (C) Eric Sink / SQLitePCLRaw authors
+  Upstream: https://github.com/ericsink/SQLitePCL.raw
+
+* SQLite Core Engine
+  Version: 3.46.1
+  License: Public Domain (Dedicated by D. Richard Hipp)
+  Upstream: https://www.sqlite.org/
+
+* Serilog, Serilog.Sinks.File, Serilog.Sinks.Console
+  Version: 4.1.0 / 6.0.0 / 6.0.0
+  License: Apache License 2.0
+  Copyright: (C) Serilog Contributors
+  Upstream: https://github.com/serilog/serilog
+
+--------------------------------------------------------------------------------
+2. LIBVLC COMPLIANCE & REDISTRIBUTION OBLIGATIONS (LGPL-2.1)
+--------------------------------------------------------------------------------
+
+NovaPlayer utilizes the native LibVLC library and LibVLCSharp bindings under
+the terms of the GNU Lesser General Public License, Version 2.1 (LGPL-2.1).
+
+In compliance with LGPL-2.1 Section 6:
+1. Dynamic Linking: NovaPlayer links to LibVLC dynamically at runtime (libvlc.dll
+   and libvlccore.dll via P/Invoke interop). NovaPlayer's application code is not
+   a derivative work of LibVLC and is distributed under its own project license.
+2. User Modification and Replacement: Users have the explicit right and technical
+   capability to replace, upgrade, or modify the LibVLC shared libraries and
+   plugins bundled in the application's libvlc\win-x64\ directory with compatible
+   custom-built or upstream LibVLC binaries.
+3. Source Code Availability: Unmodified corresponding source code for the bundled
+   LibVLC 3.0.21 release can be freely downloaded from:
+   - Official VideoLAN Sources: https://www.videolan.org/vlc/download-sources.html
+   - VideoLAN GitLab Repository: https://code.videolan.org/videolan/vlc/-/tree/3.0.21
+   - LibVLCSharp Sources: https://code.videolan.org/videolan/LibVLCSharp/-/tree/3.9.2
+4. Trademark Notice: "LibVLC" and the VLC cone logo are registered trademarks of
+   VideoLAN. NovaPlayer is an independent project and is neither endorsed by nor
+   affiliated with VideoLAN.
+
+--------------------------------------------------------------------------------
+3. MIT LICENSE
+--------------------------------------------------------------------------------
+Applies to: Microsoft.Data.Sqlite, Microsoft.Extensions.DependencyInjection,
+            CommunityToolkit.Mvvm
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+4. APACHE LICENSE 2.0
+--------------------------------------------------------------------------------
+Applies to: Serilog, Serilog.Sinks.File, Serilog.Sinks.Console, SQLitePCLRaw
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+--------------------------------------------------------------------------------
+5. GNU LESSER GENERAL PUBLIC LICENSE 2.1 (SUMMARY)
+--------------------------------------------------------------------------------
+Applies to: LibVLC (Native), LibVLCSharp, LibVLCSharp.WPF
+
+This library is free software; you can redistribute it and/or modify it
+under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 2.1 of the License, or
+(at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+Lesser General Public License for more details:
+https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+
+--------------------------------------------------------------------------------
+6. SQLITE PUBLIC DOMAIN DEDICATION
+--------------------------------------------------------------------------------
+Applies to: SQLite Core Engine
+
+   May you do good and not evil.
+   May you find forgiveness for yourself and forgive others.
+   May you share freely, never taking more than you give.
+================================================================================
