@@ -1,0 +1,115 @@
+<Window x:Class="Nova.App.Views.Dialogs.AddDownloadDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Add Download — NovaPlayer"
+        Height="360" Width="560"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource AppBackgroundBrush}">
+
+    <Border Padding="24" Background="{DynamicResource AppBackgroundBrush}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,16">
+                <TextBlock Text="DOWNLOAD MEDIA"
+                           FontWeight="Bold"
+                           FontSize="16"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                <TextBlock Text="Direct HTTP or HTTPS media stream / file URL"
+                           FontSize="12"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,2,0,0" />
+            </StackPanel>
+
+            <!-- URL Input -->
+            <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                <TextBlock Text="Media URL:"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="12"
+                           Margin="0,0,0,4" />
+                <TextBox x:Name="UrlTextBox"
+                         Height="34"
+                         Padding="8,0"
+                         VerticalContentAlignment="Center"
+                         KeyDown="OnTextBoxKeyDown"
+                         ToolTip="Enter direct media URL (e.g. https://example.com/video.mp4)" />
+            </StackPanel>
+
+            <!-- Destination Folder -->
+            <StackPanel Grid.Row="2" Margin="0,0,0,12">
+                <TextBlock Text="Save To:"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="12"
+                           Margin="0,0,0,4" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="DestFolderTextBox"
+                             Grid.Column="0"
+                             Height="34"
+                             Padding="8,0"
+                             VerticalContentAlignment="Center" />
+                    <Button Grid.Column="1"
+                            Content="Browse..."
+                            Click="OnBrowseClick"
+                            Padding="12,0"
+                            Height="34"
+                            Margin="8,0,0,0" />
+                </Grid>
+            </StackPanel>
+
+            <!-- Filename Override (Optional) -->
+            <StackPanel Grid.Row="3" Margin="0,0,0,12">
+                <TextBlock Text="File Name (Optional):"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="12"
+                           Margin="0,0,0,4" />
+                <TextBox x:Name="FileNameTextBox"
+                         Height="34"
+                         Padding="8,0"
+                         VerticalContentAlignment="Center"
+                         KeyDown="OnTextBoxKeyDown"
+                         ToolTip="Leave blank to detect filename from URL" />
+            </StackPanel>
+
+            <!-- Error Label -->
+            <TextBlock x:Name="ErrorLabel"
+                       Grid.Row="4"
+                       Foreground="#EF4444"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       Visibility="Collapsed"
+                       Margin="0,4,0,8" />
+
+            <!-- Buttons -->
+            <StackPanel Grid.Row="5"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0,8,0,0">
+                <Button Content="Cancel"
+                        Click="OnCancelClick"
+                        Padding="16,6"
+                        Height="34"
+                        Margin="0,0,8,0" />
+                <Button Content="⬇ Start Download"
+                        Click="OnDownloadClick"
+                        Padding="16,6"
+                        Height="34"
+                        FontWeight="SemiBold"
+                        Background="{DynamicResource AccentBrush}" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

@@ -3,7 +3,7 @@
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue.svg)](https://microsoft.com/windows)
 [![Runtime: .NET 8 LTS](https://img.shields.io/badge/.NET-8.0%20LTS-purple.svg)](https://dotnet.microsoft.com/)
 [![Engine: LibVLC](https://img.shields.io/badge/Playback%20Engine-LibVLC%203.x-orange.svg)](https://www.videolan.org/)
-[![Status: Phase 4 Complete](https://img.shields.io/badge/Status-Phase%204%20Complete-green.svg)]()
+[![Status: Phase 5 Complete](https://img.shields.io/badge/Status-Phase%205%20Complete-green.svg)]()
 
 NovaPlayer is a modern, high-performance Windows desktop media player crafted in C# and WPF, powered by the industry-leading LibVLC playback engine. NovaPlayer delivers the codec resilience and playback fidelity of VLC wrapped in an intuitive, fluid interface adhering to modern Windows desktop ergonomics.
 
@@ -12,8 +12,8 @@ NovaPlayer is a modern, high-performance Windows desktop media player crafted in
 ## 🚀 Implementation Status
 
 > [!NOTE]
-> **Phase 4 (Network Playback, Audio Equalizer, Mini-Player, Video Snapshots & Theming) is COMPLETE.**
-> NovaPlayer features direct HTTP/HTTPS streaming with HLS and MPEG-DASH support, buffering telemetry, a 10-band graphic equalizer with presets and SQLite persistence, a seamless floating mini-player mode, video frame snapshots (`Shift+S`), and instant Dark/Light theme switching without restart.
+> **Phase 5 (Resumable Media Downloader & Security Hardening) is COMPLETE.**
+> NovaPlayer includes an asynchronous memory-bounded download engine supporting HTTP Range resumes (`.part` files), resource freshness verification (ETag/Last-Modified), SSRF defense against private/loopback IPv4/IPv6 ranges, manual redirect validation, path traversal defense, SQLite persistence with startup reconciliation, and an integrated Downloads management view.
 
 | Feature Area | Planned | Implemented | Target Phase |
 | :--- | :---: | :---: | :--- |
@@ -33,7 +33,7 @@ NovaPlayer is a modern, high-performance Windows desktop media player crafted in
 | **Floating Mini-Player Mode** | Yes | ✅ **Implemented** | Phase 4 |
 | **Video Frame Snapshot Tool** | Yes | ✅ **Implemented** | Phase 4 |
 | **Runtime Dark & Light Themes** | Yes | ✅ **Implemented** | Phase 4 |
-| **Resumable Media Downloader** | Yes | ⏳ *Planned* | Phase 5 |
+| **Resumable Media Downloader** | Yes | ✅ **Implemented** | Phase 5 |
 | **WiX Windows Installer (MSI)** | Yes | ⏳ *Planned* | Phase 6 |
 
 ---

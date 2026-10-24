@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Nova.App.ViewModels;
 using Nova.App.Views;
 using Nova.Core.Interfaces;
+using Nova.Infrastructure.Downloads;
 using Nova.Infrastructure.Logging;
 using Nova.Infrastructure.Persistence;
 using Nova.Infrastructure.Playback;
@@ -77,8 +78,13 @@ public partial class App : Application
         services.AddSingleton<IMediaScanner, MediaScanner>();
         services.AddSingleton<IPlaylistService, M3uPlaylistService>();
 
+        // Download Services
+        services.AddSingleton<IDownloadRepository, SqliteDownloadRepository>();
+        services.AddSingleton<IDownloadService, ResumableDownloadService>();
+
         // ViewModels
         services.AddTransient<LibraryViewModel>();
+        services.AddTransient<DownloadsViewModel>();
         services.AddTransient<PlayerViewModel>();
 
         // Views

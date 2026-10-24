@@ -116,6 +116,10 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private LibraryViewModel? _library;
 
+    // Phase 5: Resumable Downloads
+    [ObservableProperty]
+    private DownloadsViewModel? _downloads;
+
     [ObservableProperty]
     private int _activeTabIndex;
 

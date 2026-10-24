@@ -184,14 +184,45 @@ flowchart TD
 
 ---
 
-## 7. Security Architecture
+## 7. Security & Downloader Architecture
 
-1. **Safe URL Parsing**:
-   * Network streams and downloads only permit `http` and `https` schemes.
-   * `file://` schemes are treated as local files and routed through filesystem permission checks.
-   * `ftp://`, `gopher://`, `file://` over SMB, and internal IP address formats (127.0.0.1, 10.0.0.0/8, 192.168.0.0/16, 169.254.0.0/16) are blocked for download requests to prevent SSRF vulnerabilities.
-2. **Input Sanitization**:
-   * File paths received from external drops or playlists are normalized using `Path.GetFullPath` and verified against directory traversal (`..\`).
-   * Downloaded filenames are sanitized against Windows illegal characters (`<>:"/\|?*`).
-3. **No Dynamic Code Execution**:
-   * Subtitles (ASS/SSA) are rendered via native LibVLC subtitle filter; no script execution is supported.
+### 7.1 Resumable Download Engine
+1. **Streaming Architecture**:
+   * Uses `HttpClient` with `HttpCompletionOption.ResponseHeadersRead` and 64 KB memory-bounded buffers (`new byte[65536]`).
+   * Bounded memory footprint guarantees zero whole-file memory buffering regardless of download size (multi-gigabyte video files).
+   * Throttled telemetry updates UI Dispatcher at most 4 Hz (250ms interval) calculating rolling transfer speed and ETA.
+2. **Resumable HTTP Range Mechanics**:
+   * Uses `.part` staging files (`{DestinationPath}.part`).
+   * When resuming, issues `Range: bytes={existingBytes}-` and `If-Range: {etag}`.
+   * Requires `206 Partial Content` with matching `Content-Range: bytes START-END/TOTAL`.
+   * Rejects `200 OK` as an appendable response (restarts from byte 0 to prevent corruption).
+   * Validates resource freshness: if `ETag` or `Last-Modified` changed since partial download started, the partial file is deemed stale, purged, and restarted from byte 0.
+   * Atomic promotion: on verified completion, flushes buffers, closes streams, verifies destination non-collision, and invokes `File.Move(tempPath, destPath, overwrite: false)`.
+
+### 7.2 Security Hardening & SSRF Defense
+1. **Strict Scheme & Credential Validation**:
+   * Permits only `http` and `https` schemes.
+   * Explicitly rejects URLs containing embedded user credentials (`user:password@host`) via `uri.UserInfo`.
+2. **DNS Resolution & Prohibited IP Filtering**:
+   * Resolves target hostname prior to issuing requests.
+   * Prohibits connection to:
+     * IPv4 Loopback (`127.0.0.0/8`, `0.0.0.0/8`)
+     * IPv4 Private (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`)
+     * IPv4 Link-Local (`169.254.0.0/16`, including AWS/cloud metadata services)
+     * IPv4 Multicast/Broadcast (`224.0.0.0/4`, `255.255.255.255`)
+     * IPv4 Carrier-Grade NAT (`100.64.0.0/10`)
+     * IPv6 Loopback (`::1`), Link-Local (`fe80::/10`), Unique Local (`fc00::/7`), Multicast (`ff00::/8`)
+     * IPv4-mapped IPv6 addresses (`::ffff:127.0.0.1`, `::ffff:192.168.x.x`).
+3. **Manual Redirect Loop Protection**:
+   * `HttpClientHandler.AllowAutoRedirect` is disabled.
+   * Redirects (301, 302, 303, 307, 308) are followed manually up to a maximum limit of 5 hops.
+   * Every redirect destination URL is independently re-validated against scheme, credential, and SSRF address restrictions before sending subsequent requests.
+4. **Filesystem Traversal & Collision Protection**:
+   * Filenames sanitized against path traversal (`../`, `..\`) and illegal Windows NTFS characters (`<>:"/\|?*`).
+   * Trailing periods and spaces trimmed.
+   * Windows reserved device names (`CON`, `PRN`, `AUX`, `NUL`, `COM1-9`, `LPT1-9`) neutralized with safe generated prefixes.
+   * Output path containment verified via `Path.GetFullPath` to ensure it remains strictly inside the user's chosen destination directory.
+   * Non-destructive collision handler generates `file (1).ext`, `file (2).ext` rather than silently overwriting user data.
+5. **Known Networking Limitations**:
+   * DNS Rebinding Defense: DNS is resolved at check time. While manual redirect inspection prevents redirection to internal IPs, advanced DNS rebinding where a malicious authoritative nameserver returns a public IP on initial query and an internal IP on secondary socket connection within TTL windows can only be completely eliminated with socket-level IP connection pinning (e.g. SocketsHttpHandler `ConnectCallback`).
+   * Encrypted Streams: Downloader does not circumvent DRM, Widevine, PlayReady, or token-locked session streams. Only legally accessible, permitted direct files are supported.

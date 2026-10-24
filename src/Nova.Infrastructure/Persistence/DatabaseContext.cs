@@ -94,7 +94,12 @@ public class DatabaseContext
                 await ApplyMigrationV1Async(connection);
             }
 
-            Log.Information("Database initialization and migrations completed successfully. Current version: {Version}", Math.Max(currentVersion, 1));
+            if (currentVersion < 2)
+            {
+                await ApplyMigrationV2Async(connection);
+            }
+
+            Log.Information("Database initialization and migrations completed successfully. Current version: {Version}", Math.Max(currentVersion, 2));
             return Result.Success();
         }
         catch (Exception ex)
@@ -184,6 +189,49 @@ public class DatabaseContext
             await cmd.ExecuteNonQueryAsync();
             await transaction.CommitAsync();
             Log.Information("Applied schema migration V1.");
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    private static async Task ApplyMigrationV2Async(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        try
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = @"
+                -- Downloads Table
+                CREATE TABLE IF NOT EXISTS downloads (
+                    id TEXT PRIMARY KEY,
+                    url TEXT NOT NULL,
+                    destination_path TEXT NOT NULL,
+                    temp_file_path TEXT NOT NULL,
+                    filename TEXT NOT NULL,
+                    state INTEGER NOT NULL DEFAULT 0,
+                    bytes_downloaded INTEGER NOT NULL DEFAULT 0,
+                    total_bytes INTEGER,
+                    etag TEXT,
+                    last_modified TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    error_message TEXT
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_downloads_state ON downloads(state);
+                CREATE INDEX IF NOT EXISTS idx_downloads_created ON downloads(created_at DESC);
+
+                -- Record Migration V2
+                INSERT INTO schema_migrations (version, applied_at)
+                VALUES (2, datetime('now'));";
+
+            await cmd.ExecuteNonQueryAsync();
+            await transaction.CommitAsync();
+            Log.Information("Applied schema migration V2.");
         }
         catch
         {

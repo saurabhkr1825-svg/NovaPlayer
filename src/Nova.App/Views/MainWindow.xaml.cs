@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -24,7 +25,10 @@ public partial class MainWindow : Window
     private ResizeMode _normalResizeMode = ResizeMode.CanResize;
     private bool _normalTopmost;
 
-    public MainWindow(PlayerViewModel viewModel, LibraryViewModel? libraryViewModel = null)
+    public MainWindow(
+        PlayerViewModel viewModel,
+        LibraryViewModel? libraryViewModel = null,
+        DownloadsViewModel? downloadsViewModel = null)
     {
         InitializeComponent();
         _viewModel = viewModel;
@@ -44,12 +48,45 @@ public partial class MainWindow : Window
             _ = libraryViewModel.InitializeAsync();
         }
 
+        if (downloadsViewModel != null)
+        {
+            _viewModel.Downloads = downloadsViewModel;
+            downloadsViewModel.PlayMediaRequested += async (s, path) =>
+            {
+                _viewModel.ActiveTabIndex = 0;
+                await _viewModel.PlayFileAsync(path);
+            };
+            downloadsViewModel.RequestAddDownloadDialog += OnRequestAddDownloadDialog;
+            _ = downloadsViewModel.InitializeAsync();
+        }
+
         DataContext = _viewModel;
 
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _viewModel.ShowMediaInfoRequested += OnShowMediaInfoRequested;
         _viewModel.ShowEqualizerRequested += OnShowEqualizerRequested;
         _viewModel.OpenUrlRequested += OnOpenUrlRequested;
+    }
+
+    private void OnRequestAddDownloadDialog()
+    {
+        if (_viewModel.Downloads == null) return;
+
+        var defaultFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var downloadsFolder = Path.Combine(defaultFolder, "Downloads", "NovaPlayer");
+
+        var dialog = new AddDownloadDialog(downloadsFolder)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.ValidatedUrl))
+        {
+            _ = _viewModel.Downloads.AddDownloadAsync(
+                dialog.ValidatedUrl,
+                dialog.DestinationFolder,
+                dialog.CustomFileName);
+        }
     }
 
     private void OnShowMediaInfoRequested(MediaDetails details)
@@ -333,6 +370,11 @@ public partial class MainWindow : Window
 
             case Key.L:
                 _viewModel.ActiveTabIndex = _viewModel.ActiveTabIndex == 0 ? 1 : 0;
+                e.Handled = true;
+                break;
+
+            case Key.D:
+                _viewModel.ActiveTabIndex = _viewModel.ActiveTabIndex == 4 ? 0 : 4;
                 e.Handled = true;
                 break;
 
@@ -720,6 +762,11 @@ public partial class MainWindow : Window
         _viewModel.ShowMediaInfoRequested -= OnShowMediaInfoRequested;
         _viewModel.ShowEqualizerRequested -= OnShowEqualizerRequested;
         _viewModel.OpenUrlRequested -= OnOpenUrlRequested;
+        if (_viewModel.Downloads != null)
+        {
+            _viewModel.Downloads.RequestAddDownloadDialog -= OnRequestAddDownloadDialog;
+            _viewModel.Downloads.Dispose();
+        }
         _viewModel.Library?.Dispose();
         _viewModel.Dispose();
         base.OnClosing(e);

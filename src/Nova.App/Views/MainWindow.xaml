@@ -89,6 +89,13 @@
                                 Padding="12,5"
                                 FontSize="12"
                                 Margin="0,0,4,0"/>
+
+                        <Button Content="⬇ Downloads"
+                                Command="{Binding SwitchTabCommand}"
+                                CommandParameter="4"
+                                Padding="12,5"
+                                FontSize="12"
+                                Margin="0,0,4,0"/>
                     </StackPanel>
                 </StackPanel>
 
@@ -967,6 +974,213 @@
                                 <MenuItem Header="🗑 Remove from History" Click="OnDeleteHistoryItemClick" />
                             </ContextMenu>
                         </ListView.ContextMenu>
+                    </ListView>
+                </Grid>
+            </Border>
+
+            <!-- 5. DOWNLOADS VIEW (Tab 4) -->
+            <Border Visibility="{Binding ActiveTabIndex, Converter={StaticResource TabIndexToVisibilityConverter}, ConverterParameter=4}"
+                    Background="{DynamicResource AppBackgroundBrush}"
+                    Padding="20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <!-- Toolbar: Search, Filter, Add Download, Clear Completed -->
+                        <RowDefinition Height="Auto" />
+                        <!-- Downloads List -->
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Toolbar -->
+                    <Grid Grid.Row="0" Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="300" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Search -->
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding Downloads.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Height="34"
+                                 VerticalContentAlignment="Center"
+                                 Padding="10,0"
+                                 ToolTip="Search downloads by name or URL..."/>
+
+                        <!-- Category Filter -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="Filter:" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox ItemsSource="{x:Static viewModels:DownloadsViewModel.FilterOptions}"
+                                      SelectedItem="{Binding Downloads.SelectedFilter}"
+                                      Width="120" Height="32"
+                                      VerticalContentAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Action Buttons -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <Button Content="➕ Add Download..."
+                                    Command="{Binding Downloads.OpenAddDownloadDialogCommand}"
+                                    Padding="14,6"
+                                    FontWeight="SemiBold"
+                                    Background="{DynamicResource AccentBrush}"
+                                    Margin="0,0,8,0"
+                                    ToolTip="Add direct media URL to download"/>
+
+                            <Button Content="🧹 Clear Completed"
+                                    Command="{Binding Downloads.ClearCompletedCommand}"
+                                    Padding="12,6"
+                                    ToolTip="Clear completed downloads from list"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Downloads List -->
+                    <ListView Grid.Row="1"
+                              ItemsSource="{Binding Downloads.Downloads}"
+                              SelectedItem="{Binding Downloads.SelectedDownload}">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource SurfaceBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="12,10"
+                                        Margin="0,0,0,8">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Top Row: Status, Filename, Actions -->
+                                        <Grid Grid.Row="0" Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Status Badge -->
+                                            <Border Grid.Column="0"
+                                                    Background="{DynamicResource SurfaceAltBrush}"
+                                                    CornerRadius="4"
+                                                    Padding="8,2"
+                                                    Margin="0,0,10,0">
+                                                <TextBlock Text="{Binding StatusText}"
+                                                           FontSize="11"
+                                                           FontWeight="Bold"
+                                                           Foreground="{DynamicResource AccentBrush}" />
+                                            </Border>
+
+                                            <!-- Filename & Error -->
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding FileName}"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="13"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding ErrorMessage}"
+                                                           FontSize="11"
+                                                           Foreground="#EF4444"
+                                                           TextTrimming="CharacterEllipsis">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding State}" Value="Failed">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+
+                                            <!-- Action Buttons -->
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                                <!-- Pause -->
+                                                <Button Content="⏸ Pause"
+                                                        Command="{Binding DataContext.Downloads.PauseDownloadCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                        CommandParameter="{Binding}"
+                                                        Visibility="{Binding CanPause, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                        Padding="8,3" Height="26" Margin="0,0,4,0" FontSize="11"/>
+
+                                                <!-- Resume -->
+                                                <Button Content="▶ Resume"
+                                                        Command="{Binding DataContext.Downloads.ResumeDownloadCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                        CommandParameter="{Binding}"
+                                                        Visibility="{Binding CanResume, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                        Padding="8,3" Height="26" Margin="0,0,4,0" FontSize="11"
+                                                        Background="{DynamicResource AccentBrush}"/>
+
+                                                <!-- Retry -->
+                                                <Button Content="🔁 Retry"
+                                                        Command="{Binding DataContext.Downloads.RetryDownloadCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                        CommandParameter="{Binding}"
+                                                        Visibility="{Binding CanRetry, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                        Padding="8,3" Height="26" Margin="0,0,4,0" FontSize="11"/>
+
+                                                <!-- Play Completed File -->
+                                                <Button Content="▶ Play"
+                                                        Command="{Binding DataContext.Downloads.OpenFileCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                        CommandParameter="{Binding}"
+                                                        Visibility="{Binding CanOpenFile, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                        Padding="8,3" Height="26" Margin="0,0,4,0" FontSize="11"
+                                                        Background="{DynamicResource AccentBrush}"/>
+
+                                                <!-- Open Folder -->
+                                                <Button Content="📁 Folder"
+                                                        Command="{Binding DataContext.Downloads.OpenContainingFolderCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                        CommandParameter="{Binding}"
+                                                        Padding="8,3" Height="26" Margin="0,0,4,0" FontSize="11"
+                                                        ToolTip="Open containing folder in Explorer"/>
+
+                                                <!-- Cancel -->
+                                                <Button Content="✕ Cancel"
+                                                        Command="{Binding DataContext.Downloads.CancelDownloadCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                        CommandParameter="{Binding}"
+                                                        Visibility="{Binding CanCancel, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                        Padding="8,3" Height="26" Margin="0,0,4,0" FontSize="11"/>
+
+                                                <!-- Remove Record -->
+                                                <Button Content="🗑"
+                                                        Command="{Binding DataContext.Downloads.RemoveDownloadCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                        CommandParameter="{Binding}"
+                                                        Padding="6,3" Height="26" FontSize="11"
+                                                        ToolTip="Remove from list"/>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Progress Bar -->
+                                        <ProgressBar Grid.Row="1"
+                                                     Height="6"
+                                                     Value="{Binding ProgressPercentage}"
+                                                     IsIndeterminate="{Binding IsIndeterminate}"
+                                                     Margin="0,0,0,6"
+                                                     Foreground="{DynamicResource AccentBrush}"
+                                                     Background="{DynamicResource SurfaceAltBrush}"/>
+
+                                        <!-- Bottom Telemetry Row: Progress text, Speed, ETA -->
+                                        <Grid Grid.Row="2">
+                                            <TextBlock HorizontalAlignment="Left"
+                                                       Text="{Binding ProgressText}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+                                            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                                                <TextBlock Text="{Binding SpeedText}"
+                                                           FontSize="11"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                                           Margin="0,0,12,0"/>
+                                                <TextBlock Text="{Binding EtaText}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
                     </ListView>
                 </Grid>
             </Border>
