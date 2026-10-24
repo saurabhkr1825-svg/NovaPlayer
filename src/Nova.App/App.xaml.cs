@@ -5,7 +5,10 @@ using Nova.App.ViewModels;
 using Nova.App.Views;
 using Nova.Core.Interfaces;
 using Nova.Infrastructure.Logging;
+using Nova.Infrastructure.Persistence;
 using Nova.Infrastructure.Playback;
+using Nova.Infrastructure.Playlists;
+using Nova.Infrastructure.Scanner;
 using Serilog;
 
 namespace Nova.App;
@@ -32,11 +35,26 @@ public partial class App : Application
         ConfigureServices(services);
         _serviceProvider = services.BuildServiceProvider();
 
-        // 4. Resolve and Show Main Window
+        // 4. Initialize Database
+        try
+        {
+            var libraryRepo = _serviceProvider.GetRequiredService<ILibraryRepository>();
+            var initResult = libraryRepo.InitializeAsync().GetAwaiter().GetResult();
+            if (initResult.IsFailure)
+            {
+                Log.Error("Failed to initialize SQLite database: {Error}", initResult.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Unexpected error during database initialization.");
+        }
+
+        // 5. Resolve and Show Main Window
         var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
         mainWindow.Show();
 
-        // 5. If media file path argument is passed, auto-play
+        // 6. If media file path argument is passed, auto-play
         if (e.Args.Length > 0 && !string.IsNullOrWhiteSpace(e.Args[0]))
         {
             var targetPath = e.Args[0];
@@ -50,10 +68,17 @@ public partial class App : Application
 
     private static void ConfigureServices(IServiceCollection services)
     {
-        // Core Services
+        // Core Playback Service
         services.AddSingleton<IPlaybackService, LibVlcPlaybackService>();
 
+        // Persistence & Scanner Services
+        services.AddSingleton<DatabaseContext>(_ => new DatabaseContext());
+        services.AddSingleton<ILibraryRepository, SqliteLibraryRepository>();
+        services.AddSingleton<IMediaScanner, MediaScanner>();
+        services.AddSingleton<IPlaylistService, M3uPlaylistService>();
+
         // ViewModels
+        services.AddTransient<LibraryViewModel>();
         services.AddTransient<PlayerViewModel>();
 
         // Views

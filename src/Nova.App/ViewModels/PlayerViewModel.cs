@@ -14,13 +14,20 @@ namespace Nova.App.ViewModels;
 public partial class PlayerViewModel : ObservableObject, IDisposable
 {
     private readonly IPlaybackService _playbackService;
+    private readonly ILibraryRepository? _libraryRepository;
     private readonly DispatcherTimer _overlayTimer;
     private bool _isUserSeeking;
     private bool _isDisposed;
+    private DateTime _lastHistorySaveUtc = DateTime.MinValue;
+
+    public event Action<MediaDetails>? ShowMediaInfoRequested;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WindowTitle))]
     private string _currentMediaTitle = "No media loaded";
+
+    [ObservableProperty]
+    private string? _currentFilePath;
 
     [ObservableProperty]
     private bool _isPlaying;
@@ -93,15 +100,54 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
 
     public static string[] AvailableAspectRatios { get; } = ["Default", "16:9", "4:3", "1:1", "16:10", "21:9"];
 
+    // Phase 3: Resume Playback
+    [ObservableProperty]
+    private bool _isResumePromptVisible;
+
+    [ObservableProperty]
+    private long _pendingResumePositionMs;
+
+    [ObservableProperty]
+    private string _resumePromptText = string.Empty;
+
+    // Phase 3: Navigation and Library
+    [ObservableProperty]
+    private LibraryViewModel? _library;
+
+    [ObservableProperty]
+    private int _activeTabIndex;
+
+    [RelayCommand]
+    public void SwitchTab(int index)
+    {
+        ActiveTabIndex = index;
+    }
+
+    // Phase 3: Playlist Queue
+    [ObservableProperty]
+    private ObservableCollection<string> _playbackQueue = new();
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNextTrack))]
+    [NotifyPropertyChangedFor(nameof(HasPreviousTrack))]
+    private int _currentQueueIndex = -1;
+
+    [ObservableProperty]
+    private RepeatMode _repeatMode = RepeatMode.None;
+
+    public bool HasNextTrack => PlaybackQueue.Count > 0 && (CurrentQueueIndex < PlaybackQueue.Count - 1 || RepeatMode == RepeatMode.RepeatAll);
+    public bool HasPreviousTrack => PlaybackQueue.Count > 0 && (CurrentQueueIndex > 0 || RepeatMode == RepeatMode.RepeatAll);
+
     public string WindowTitle => string.IsNullOrWhiteSpace(CurrentMediaTitle) || CurrentMediaTitle == "No media loaded"
         ? "NovaPlayer"
         : $"NovaPlayer — {CurrentMediaTitle}";
 
     public object NativeMediaPlayer => _playbackService.NativeMediaPlayer;
 
-    public PlayerViewModel(IPlaybackService playbackService)
+    public PlayerViewModel(IPlaybackService playbackService, ILibraryRepository? libraryRepository = null)
     {
         _playbackService = playbackService;
+        _libraryRepository = libraryRepository;
 
         _overlayTimer = new DispatcherTimer
         {
@@ -147,14 +193,41 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
             IsPaused = state == PlaybackState.Paused;
             IsBuffering = state == PlaybackState.Buffering;
 
+            if (state == PlaybackState.Paused || state == PlaybackState.Ended)
+            {
+                SaveProgress();
+            }
+
             if (state == PlaybackState.Ended)
             {
                 IsPlaying = false;
                 IsPaused = false;
                 StatusMessage = "Playback ended.";
                 IsOverlayVisible = true;
+
+                HandlePlaybackEnded();
             }
         });
+    }
+
+    private void HandlePlaybackEnded()
+    {
+        if (RepeatMode == RepeatMode.RepeatOne && !string.IsNullOrWhiteSpace(CurrentFilePath))
+        {
+            _ = PlayFileAsync(CurrentFilePath);
+        }
+        else if (PlaybackQueue.Count > 0)
+        {
+            if (CurrentQueueIndex < PlaybackQueue.Count - 1)
+            {
+                _ = PlayNextTrackAsync();
+            }
+            else if (RepeatMode == RepeatMode.RepeatAll)
+            {
+                CurrentQueueIndex = 0;
+                _ = PlayFileAsync(PlaybackQueue[0]);
+            }
+        }
     }
 
     private void OnPositionChanged(object? sender, PlaybackPositionEventArgs e)
@@ -165,6 +238,38 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         {
             CurrentPositionMs = e.PositionMs;
             CurrentTimeText = TimeFormatter.FormatMilliseconds(e.PositionMs);
+
+            // Throttle periodic progress save to database (every 5 seconds)
+            if (_libraryRepository != null && !string.IsNullOrWhiteSpace(CurrentFilePath) && CurrentPositionMs > 0)
+            {
+                if ((DateTime.UtcNow - _lastHistorySaveUtc).TotalSeconds >= 5)
+                {
+                    _lastHistorySaveUtc = DateTime.UtcNow;
+                    SaveProgress();
+                }
+            }
+        });
+    }
+
+    private void SaveProgress()
+    {
+        if (_libraryRepository == null || string.IsNullOrWhiteSpace(CurrentFilePath)) return;
+
+        var path = CurrentFilePath;
+        var title = CurrentMediaTitle;
+        var pos = CurrentPositionMs;
+        var dur = TotalDurationMs;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                await _libraryRepository.RecordPlaybackHistoryAsync(path, title, pos, dur);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to persist playback history for {Path}", path);
+            }
         });
     }
 
@@ -198,7 +303,6 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         RunOnUi(() =>
         {
             StatusMessage = e.Message;
-            IsOverlayVisible = true;
         });
     }
 
@@ -206,7 +310,11 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     {
         RunOnUi(() =>
         {
-            AudioTracks = new ObservableCollection<TrackInfo>(tracks);
+            AudioTracks.Clear();
+            foreach (var track in tracks)
+            {
+                AudioTracks.Add(track);
+            }
         });
     }
 
@@ -230,7 +338,11 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     {
         RunOnUi(() =>
         {
-            SubtitleTracks = new ObservableCollection<TrackInfo>(tracks);
+            SubtitleTracks.Clear();
+            foreach (var track in tracks)
+            {
+                SubtitleTracks.Add(track);
+            }
         });
     }
 
@@ -258,11 +370,11 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         });
     }
 
-    private void OnAspectRatioChanged(object? sender, string? ratio)
+    private void OnAspectRatioChanged(object? sender, string? aspectRatio)
     {
         RunOnUi(() =>
         {
-            SelectedAspectRatio = string.IsNullOrWhiteSpace(ratio) ? "Default" : ratio;
+            SelectedAspectRatio = string.IsNullOrWhiteSpace(aspectRatio) ? "Default" : aspectRatio;
         });
     }
 
@@ -278,6 +390,9 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
 
         if (openFileDialog.ShowDialog() == true)
         {
+            // Clear queue when opening single standalone file
+            PlaybackQueue.Clear();
+            CurrentQueueIndex = -1;
             await PlayFileAsync(openFileDialog.FileName);
         }
     }
@@ -286,8 +401,37 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     {
         try
         {
+            CurrentFilePath = filePath;
             CurrentMediaTitle = Path.GetFileName(filePath);
             StatusMessage = null;
+            IsResumePromptVisible = false;
+            PendingResumePositionMs = 0;
+
+            // Check if resume point exists
+            if (_libraryRepository != null)
+            {
+                try
+                {
+                    var resumeResult = await _libraryRepository.GetResumePointAsync(filePath);
+                    if (resumeResult.IsSuccess && resumeResult.Value != null)
+                    {
+                        var entry = resumeResult.Value;
+                        // Threshold: > 10 seconds in and < 95% of duration
+                        if (entry.PositionMs > 10000 &&
+                            (entry.DurationMs <= 0 || entry.PositionMs < (long)(entry.DurationMs * 0.95)))
+                        {
+                            PendingResumePositionMs = entry.PositionMs;
+                            ResumePromptText = $"Resume from {TimeFormatter.FormatMilliseconds(entry.PositionMs)}?";
+                            IsResumePromptVisible = true;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Failed to check resume state for {Path}", filePath);
+                }
+            }
+
             var result = await _playbackService.PlayAsync(filePath);
             if (result.IsFailure)
             {
@@ -303,6 +447,97 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
             Log.Error(ex, "Failed to open file: {FilePath}", filePath);
             StatusMessage = $"Cannot play file: {ex.Message}";
         }
+    }
+
+    [RelayCommand]
+    public async Task ResumePlaybackAsync()
+    {
+        if (PendingResumePositionMs > 0)
+        {
+            await _playbackService.SeekAsync(PendingResumePositionMs);
+        }
+        IsResumePromptVisible = false;
+    }
+
+    [RelayCommand]
+    public void DismissResumePrompt()
+    {
+        IsResumePromptVisible = false;
+    }
+
+    public void SetQueue(IReadOnlyList<string> items, int startIndex = 0)
+    {
+        PlaybackQueue.Clear();
+        foreach (var item in items)
+        {
+            PlaybackQueue.Add(item);
+        }
+
+        if (startIndex >= 0 && startIndex < PlaybackQueue.Count)
+        {
+            CurrentQueueIndex = startIndex;
+            _ = PlayFileAsync(PlaybackQueue[startIndex]);
+        }
+        else
+        {
+            CurrentQueueIndex = -1;
+        }
+
+        OnPropertyChanged(nameof(HasNextTrack));
+        OnPropertyChanged(nameof(HasPreviousTrack));
+    }
+
+    [RelayCommand]
+    public async Task PlayNextTrackAsync()
+    {
+        if (PlaybackQueue.Count == 0) return;
+
+        if (CurrentQueueIndex < PlaybackQueue.Count - 1)
+        {
+            CurrentQueueIndex++;
+            await PlayFileAsync(PlaybackQueue[CurrentQueueIndex]);
+        }
+        else if (RepeatMode == RepeatMode.RepeatAll)
+        {
+            CurrentQueueIndex = 0;
+            await PlayFileAsync(PlaybackQueue[0]);
+        }
+    }
+
+    [RelayCommand]
+    public async Task PlayPreviousTrackAsync()
+    {
+        if (PlaybackQueue.Count == 0) return;
+
+        // If playing for more than 3 seconds, restart current track
+        if (CurrentPositionMs > 3000)
+        {
+            await _playbackService.SeekAsync(0);
+            return;
+        }
+
+        if (CurrentQueueIndex > 0)
+        {
+            CurrentQueueIndex--;
+            await PlayFileAsync(PlaybackQueue[CurrentQueueIndex]);
+        }
+        else if (RepeatMode == RepeatMode.RepeatAll)
+        {
+            CurrentQueueIndex = PlaybackQueue.Count - 1;
+            await PlayFileAsync(PlaybackQueue[CurrentQueueIndex]);
+        }
+    }
+
+    [RelayCommand]
+    public void CycleRepeatMode()
+    {
+        RepeatMode = RepeatMode switch
+        {
+            RepeatMode.None => RepeatMode.RepeatAll,
+            RepeatMode.RepeatAll => RepeatMode.RepeatOne,
+            RepeatMode.RepeatOne => RepeatMode.None,
+            _ => RepeatMode.None
+        };
     }
 
     [RelayCommand]
@@ -331,6 +566,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public async Task StopAsync()
     {
+        SaveProgress();
         await _playbackService.StopAsync();
         IsPlaying = false;
         IsPaused = false;
@@ -362,17 +598,17 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    public async Task ChangeVolumeAsync(int newVolume)
+    public async Task SetVolumeAsync(int newVolume)
     {
         await _playbackService.SetVolumeAsync(newVolume);
+        TriggerUserActivity();
     }
 
     [RelayCommand]
     public async Task VolumeRelativeAsync(int delta)
     {
-        var targetVolume = Math.Clamp(Volume + delta, 0, 100);
-        await _playbackService.SetVolumeAsync(targetVolume);
-        TriggerUserActivity();
+        var newVol = Math.Clamp(Volume + delta, 0, 100);
+        await SetVolumeAsync(newVol);
     }
 
     [RelayCommand]
@@ -400,7 +636,6 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         }
     }
 
-    // Phase 2: Audio Track Controls
     [RelayCommand]
     public async Task SelectAudioTrackAsync(int trackId)
     {
@@ -411,9 +646,9 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public async Task AdjustAudioDelayAsync(long deltaMs)
     {
-        var newDelay = AudioDelayMs + deltaMs;
+        var newDelay = Math.Clamp(AudioDelayMs + deltaMs, -5000, 5000);
         await _playbackService.SetAudioDelayAsync(newDelay);
-        StatusMessage = $"Audio Delay: {newDelay} ms";
+        StatusMessage = $"Audio Delay: {newDelay:+0;-0;0} ms";
         TriggerUserActivity();
     }
 
@@ -421,11 +656,10 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     public async Task ResetAudioDelayAsync()
     {
         await _playbackService.SetAudioDelayAsync(0);
-        StatusMessage = "Audio Delay reset to 0 ms";
+        StatusMessage = "Audio Delay: 0 ms";
         TriggerUserActivity();
     }
 
-    // Phase 2: Subtitle Controls
     [RelayCommand]
     public async Task SelectSubtitleTrackAsync(int trackId)
     {
@@ -434,36 +668,11 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    public async Task AddExternalSubtitleAsync()
-    {
-        var dialog = new OpenFileDialog
-        {
-            Title = "Load External Subtitle File",
-            Filter = "Subtitle Files (*.srt;*.ass;*.ssa;*.vtt;*.sub)|*.srt;*.ass;*.ssa;*.vtt;*.sub|All Files (*.*)|*.*",
-            Multiselect = false
-        };
-
-        if (dialog.ShowDialog() == true)
-        {
-            var res = await _playbackService.AddSubtitleFileAsync(dialog.FileName);
-            if (res.IsFailure)
-            {
-                StatusMessage = $"Failed to load subtitle: {res.Error}";
-            }
-            else
-            {
-                StatusMessage = $"Loaded subtitle: {Path.GetFileName(dialog.FileName)}";
-            }
-        }
-        TriggerUserActivity();
-    }
-
-    [RelayCommand]
     public async Task AdjustSubtitleDelayAsync(long deltaMs)
     {
-        var newDelay = SubtitleDelayMs + deltaMs;
+        var newDelay = Math.Clamp(SubtitleDelayMs + deltaMs, -5000, 5000);
         await _playbackService.SetSubtitleDelayAsync(newDelay);
-        StatusMessage = $"Subtitle Delay: {newDelay} ms";
+        StatusMessage = $"Subtitle Delay: {newDelay:+0;-0;0} ms";
         TriggerUserActivity();
     }
 
@@ -471,69 +680,81 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     public async Task ResetSubtitleDelayAsync()
     {
         await _playbackService.SetSubtitleDelayAsync(0);
-        StatusMessage = "Subtitle Delay reset to 0 ms";
+        StatusMessage = "Subtitle Delay: 0 ms";
         TriggerUserActivity();
     }
 
-    // Phase 2: Playback Speed Controls
+    [RelayCommand]
+    public async Task LoadExternalSubtitleAsync()
+    {
+        var openFileDialog = new OpenFileDialog
+        {
+            Title = "Select Subtitle File — NovaPlayer",
+            Filter = "Subtitle Files (*.srt;*.sub;*.vtt;*.ass;*.ssa)|*.srt;*.sub;*.vtt;*.ass;*.ssa|All Files (*.*)|*.*",
+            Multiselect = false
+        };
+
+        if (openFileDialog.ShowDialog() == true)
+        {
+            var result = await _playbackService.AddSubtitleFileAsync(openFileDialog.FileName);
+            if (result.IsSuccess)
+            {
+                StatusMessage = $"Loaded subtitle: {Path.GetFileName(openFileDialog.FileName)}";
+            }
+            else
+            {
+                StatusMessage = result.Error;
+            }
+        }
+        TriggerUserActivity();
+    }
+
     [RelayCommand]
     public async Task SetPlaybackSpeedAsync(float speed)
     {
         await _playbackService.SetPlaybackSpeedAsync(speed);
+        StatusMessage = $"Speed: {speed:0.##}×";
         TriggerUserActivity();
     }
 
     [RelayCommand]
     public async Task CyclePlaybackSpeedAsync()
     {
-        // Cycle: 0.5 -> 0.75 -> 1.0 -> 1.25 -> 1.5 -> 2.0 -> 0.5
-        float nextSpeed = PlaybackSpeed switch
-        {
-            < 0.7f => 0.75f,
-            < 0.9f => 1.0f,
-            < 1.2f => 1.25f,
-            < 1.4f => 1.5f,
-            < 1.8f => 2.0f,
-            _ => 1.0f
-        };
-
-        await SetPlaybackSpeedAsync(nextSpeed);
+        int currentIndex = Array.FindIndex(AvailablePlaybackSpeeds, s => Math.Abs(s - PlaybackSpeed) < 0.05f);
+        int nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % AvailablePlaybackSpeeds.Length;
+        await SetPlaybackSpeedAsync(AvailablePlaybackSpeeds[nextIndex]);
     }
 
-    // Phase 2: Aspect Ratio Controls
     [RelayCommand]
-    public async Task SetAspectRatioAsync(string? ratio)
+    public async Task SetAspectRatioAsync(string aspectRatio)
     {
-        await _playbackService.SetAspectRatioAsync(ratio);
+        var ratioParam = aspectRatio == "Default" ? null : aspectRatio;
+        await _playbackService.SetAspectRatioAsync(ratioParam);
+        SelectedAspectRatio = aspectRatio;
+        StatusMessage = $"Aspect Ratio: {aspectRatio}";
         TriggerUserActivity();
     }
 
-    // Event to decouple UI Dialog display from ViewModel
-    public event Action<MediaDetails>? ShowMediaInfoRequested;
-
-    // Phase 2: Media Details Inspector Dialog
     [RelayCommand]
     public async Task ShowMediaInfoAsync()
     {
-        var detailsResult = await _playbackService.GetMediaDetailsAsync();
-        if (detailsResult.IsSuccess)
+        var result = await _playbackService.GetMediaDetailsAsync();
+        if (result.IsSuccess && result.Value != null)
         {
-            ShowMediaInfoRequested?.Invoke(detailsResult.Value);
+            ShowMediaInfoRequested?.Invoke(result.Value);
         }
         else
         {
-            StatusMessage = detailsResult.Error;
+            StatusMessage = result.Error ?? "Media information not available.";
         }
-        TriggerUserActivity();
     }
 
-    [RelayCommand]
     public void TriggerUserActivity()
     {
         IsOverlayVisible = true;
-        _overlayTimer.Stop();
         if (IsFullscreen && IsPlaying)
         {
+            _overlayTimer.Stop();
             _overlayTimer.Start();
         }
     }
@@ -561,6 +782,8 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     {
         if (_isDisposed) return;
         _isDisposed = true;
+
+        SaveProgress();
 
         _overlayTimer.Stop();
         _playbackService.StateChanged -= OnStateChanged;

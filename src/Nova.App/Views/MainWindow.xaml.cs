@@ -3,6 +3,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Nova.App.ViewModels;
+using Nova.App.Views.Dialogs;
+using Nova.Core.Models;
 
 namespace Nova.App.Views;
 
@@ -13,19 +15,35 @@ public partial class MainWindow : Window
     private WindowState _previousState = WindowState.Normal;
     private ResizeMode _previousResizeMode = ResizeMode.CanResize;
 
-    public MainWindow(PlayerViewModel viewModel)
+    public MainWindow(PlayerViewModel viewModel, LibraryViewModel? libraryViewModel = null)
     {
         InitializeComponent();
         _viewModel = viewModel;
+        if (libraryViewModel != null)
+        {
+            _viewModel.Library = libraryViewModel;
+            libraryViewModel.PlayMediaRequested += async (s, path) =>
+            {
+                _viewModel.ActiveTabIndex = 0;
+                await _viewModel.PlayFileAsync(path);
+            };
+            libraryViewModel.PlayQueueRequested += (s, req) =>
+            {
+                _viewModel.ActiveTabIndex = 0;
+                _viewModel.SetQueue(req.items, req.startIndex);
+            };
+            _ = libraryViewModel.InitializeAsync();
+        }
+
         DataContext = _viewModel;
 
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _viewModel.ShowMediaInfoRequested += OnShowMediaInfoRequested;
     }
 
-    private void OnShowMediaInfoRequested(Nova.Core.Models.MediaDetails details)
+    private void OnShowMediaInfoRequested(MediaDetails details)
     {
-        var dialog = new Dialogs.MediaInfoDialog(details)
+        var dialog = new MediaInfoDialog(details)
         {
             Owner = this
         };
@@ -73,8 +91,7 @@ public partial class MainWindow : Window
         }
         else if (e.ClickCount == 1)
         {
-            // Single click on empty video surface toggles play/pause
-            if (e.OriginalSource is System.Windows.Controls.Grid || e.OriginalSource is LibVLCSharp.WPF.VideoView)
+            if (e.OriginalSource is Grid || e.OriginalSource is LibVLCSharp.WPF.VideoView)
             {
                 _viewModel.PlayPauseCommand.Execute(null);
             }
@@ -88,6 +105,9 @@ public partial class MainWindow : Window
 
     private void OnWindowKeyDown(object sender, KeyEventArgs e)
     {
+        // Don't intercept shortcuts when typing in a TextBox (e.g. search box)
+        if (e.OriginalSource is TextBox) return;
+
         _viewModel.TriggerUserActivity();
 
         switch (e.Key)
@@ -108,12 +128,12 @@ public partial class MainWindow : Window
                 break;
 
             case Key.Up:
-                _viewModel.VolumeRelativeCommand.Execute(5);
+                _viewModel.SetVolumeCommand.Execute(Math.Min(100, _viewModel.Volume + 5));
                 e.Handled = true;
                 break;
 
             case Key.Down:
-                _viewModel.VolumeRelativeCommand.Execute(-5);
+                _viewModel.SetVolumeCommand.Execute(Math.Max(0, _viewModel.Volume - 5));
                 e.Handled = true;
                 break;
 
@@ -183,6 +203,26 @@ public partial class MainWindow : Window
 
             case Key.K:
                 _viewModel.AdjustSubtitleDelayCommand.Execute(50L);
+                e.Handled = true;
+                break;
+
+            case Key.L:
+                _viewModel.ActiveTabIndex = _viewModel.ActiveTabIndex == 0 ? 1 : 0;
+                e.Handled = true;
+                break;
+
+            case Key.N:
+                _viewModel.PlayNextTrackCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            case Key.P:
+                _viewModel.PlayPreviousTrackCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            case Key.R:
+                _viewModel.CycleRepeatModeCommand.Execute(null);
                 e.Handled = true;
                 break;
         }
@@ -263,7 +303,7 @@ public partial class MainWindow : Window
             menu.Items.Add(delayMinus);
 
             var delayReset = new MenuItem { Header = "Reset Delay (0 ms)" };
-            delayReset.Click += (s, ev) => _viewModel.ResetAudioDelayCommand.Execute(null);
+            delayReset.Click += (s, ev) => _viewModel.AdjustAudioDelayCommand.Execute(0 - _viewModel.AudioDelayMs);
             menu.Items.Add(delayReset);
 
             menu.PlacementTarget = button;
@@ -278,7 +318,7 @@ public partial class MainWindow : Window
             var menu = new ContextMenu();
 
             var loadItem = new MenuItem { Header = "📂 Load External Subtitle File..." };
-            loadItem.Click += (s, ev) => _viewModel.AddExternalSubtitleCommand.Execute(null);
+            loadItem.Click += (s, ev) => _viewModel.LoadExternalSubtitleCommand.Execute(null);
             menu.Items.Add(loadItem);
             menu.Items.Add(new Separator());
 
@@ -315,7 +355,7 @@ public partial class MainWindow : Window
             menu.Items.Add(delayMinus);
 
             var delayReset = new MenuItem { Header = "Reset Delay (0 ms)" };
-            delayReset.Click += (s, ev) => _viewModel.ResetSubtitleDelayCommand.Execute(null);
+            delayReset.Click += (s, ev) => _viewModel.AdjustSubtitleDelayCommand.Execute(0 - _viewModel.SubtitleDelayMs);
             menu.Items.Add(delayReset);
 
             menu.PlacementTarget = button;
@@ -325,8 +365,7 @@ public partial class MainWindow : Window
 
     private void OnSpeedButtonClick(object sender, RoutedEventArgs e)
     {
-        // Right click opens speed menu
-        if (sender is Button button && button.ContextMenu == null)
+        if (sender is Button button)
         {
             var menu = new ContextMenu();
             foreach (var speed in PlayerViewModel.AvailablePlaybackSpeeds)
@@ -341,7 +380,8 @@ public partial class MainWindow : Window
                 item.Click += (menuSender, ev) => _viewModel.SetPlaybackSpeedCommand.Execute(s);
                 menu.Items.Add(item);
             }
-            button.ContextMenu = menu;
+            menu.PlacementTarget = button;
+            menu.IsOpen = true;
         }
     }
 
@@ -384,8 +424,168 @@ public partial class MainWindow : Window
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
             if (files != null && files.Length > 0)
             {
+                _viewModel.ActiveTabIndex = 0;
                 await _viewModel.PlayFileAsync(files[0]);
             }
+        }
+    }
+
+    // Media Library Events
+    private async void OnMediaItemDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is ListView lv && lv.SelectedItem is MediaItem item)
+        {
+            _viewModel.ActiveTabIndex = 0;
+            await _viewModel.PlayFileAsync(item.FilePathOrUrl);
+        }
+    }
+
+    private async void OnPlaySelectedMediaItemClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Library?.SelectedMediaItem != null)
+        {
+            _viewModel.ActiveTabIndex = 0;
+            await _viewModel.PlayFileAsync(_viewModel.Library.SelectedMediaItem.FilePathOrUrl);
+        }
+    }
+
+    private void OnToggleFavoriteClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Library?.SelectedMediaItem != null)
+        {
+            _ = _viewModel.Library.ToggleFavoriteCommand.ExecuteAsync(_viewModel.Library.SelectedMediaItem);
+        }
+    }
+
+    private void OnOpenMediaLocationClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Library?.SelectedMediaItem != null)
+        {
+            _viewModel.Library.OpenFileLocationCommand.Execute(_viewModel.Library.SelectedMediaItem.FilePathOrUrl);
+        }
+    }
+
+    private void OnRemoveMediaItemClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Library?.SelectedMediaItem != null)
+        {
+            _ = _viewModel.Library.DeleteMediaItemCommand.ExecuteAsync(_viewModel.Library.SelectedMediaItem);
+        }
+    }
+
+    // Playlist Events
+    private void OnNewPlaylistButtonClick(object sender, RoutedEventArgs e)
+    {
+        var defaultName = $"Playlist {(_viewModel.Library?.Playlists.Count ?? 0) + 1}";
+        var dialog = new InputDialog("New Playlist — NovaPlayer", "Enter playlist name:", defaultName)
+        {
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+        {
+            _ = _viewModel.Library?.CreatePlaylistCommand.ExecuteAsync(dialog.InputText);
+        }
+    }
+
+    private void OnPlayCurrentPlaylistClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Library?.SelectedPlaylist != null)
+        {
+            _viewModel.Library.PlayPlaylistCommand.Execute(_viewModel.Library.SelectedPlaylist);
+        }
+    }
+
+    private void OnShufflePlaylistClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Library?.SelectedPlaylist != null)
+        {
+            _ = _viewModel.Library.ShufflePlaylistCommand.ExecuteAsync(_viewModel.Library.SelectedPlaylist);
+        }
+    }
+
+    private void OnExportPlaylistClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Library?.SelectedPlaylist != null)
+        {
+            _ = _viewModel.Library.ExportPlaylistDialogCommand.ExecuteAsync(_viewModel.Library.SelectedPlaylist);
+        }
+    }
+
+    private void OnDeletePlaylistClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Library?.SelectedPlaylist != null)
+        {
+            _ = _viewModel.Library.DeletePlaylistCommand.ExecuteAsync(_viewModel.Library.SelectedPlaylist);
+        }
+    }
+
+    private async void OnPlaylistItemDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is ListView lv && lv.SelectedItem is PlaylistItem item && item.MediaItem != null)
+        {
+            _viewModel.ActiveTabIndex = 0;
+            await _viewModel.PlayFileAsync(item.MediaItem.FilePathOrUrl);
+        }
+    }
+
+    private async void OnPlaySelectedPlaylistItemClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Library?.SelectedPlaylistItem?.MediaItem != null)
+        {
+            _viewModel.ActiveTabIndex = 0;
+            await _viewModel.PlayFileAsync(_viewModel.Library.SelectedPlaylistItem.MediaItem.FilePathOrUrl);
+        }
+    }
+
+    private void OnMoveItemUpClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Library?.SelectedPlaylistItem != null)
+        {
+            _ = _viewModel.Library.MovePlaylistItemUpCommand.ExecuteAsync(_viewModel.Library.SelectedPlaylistItem);
+        }
+    }
+
+    private void OnMoveItemDownClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Library?.SelectedPlaylistItem != null)
+        {
+            _ = _viewModel.Library.MovePlaylistItemDownCommand.ExecuteAsync(_viewModel.Library.SelectedPlaylistItem);
+        }
+    }
+
+    private void OnRemovePlaylistItemClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Library?.SelectedPlaylistItem != null)
+        {
+            _ = _viewModel.Library.RemovePlaylistItemCommand.ExecuteAsync(_viewModel.Library.SelectedPlaylistItem);
+        }
+    }
+
+    // Playback History Events
+    private async void OnHistoryItemDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is ListView lv && lv.SelectedItem is PlaybackHistoryEntry entry && !string.IsNullOrWhiteSpace(entry.FilePathOrUrl))
+        {
+            _viewModel.ActiveTabIndex = 0;
+            await _viewModel.PlayFileAsync(entry.FilePathOrUrl);
+        }
+    }
+
+    private async void OnPlayHistoryItemClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Library?.SelectedHistoryEntry != null && !string.IsNullOrWhiteSpace(_viewModel.Library.SelectedHistoryEntry.FilePathOrUrl))
+        {
+            _viewModel.ActiveTabIndex = 0;
+            await _viewModel.PlayFileAsync(_viewModel.Library.SelectedHistoryEntry.FilePathOrUrl);
+        }
+    }
+
+    private void OnDeleteHistoryItemClick(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Library?.SelectedHistoryEntry != null)
+        {
+            _ = _viewModel.Library.DeleteHistoryItemCommand.ExecuteAsync(_viewModel.Library.SelectedHistoryEntry);
         }
     }
 
@@ -393,6 +593,7 @@ public partial class MainWindow : Window
     {
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _viewModel.ShowMediaInfoRequested -= OnShowMediaInfoRequested;
+        _viewModel.Library?.Dispose();
         _viewModel.Dispose();
         base.OnClosing(e);
     }
