@@ -32,6 +32,8 @@ public class LibVlcPlaybackService : IPlaybackService
     private long _subtitleDelayMs;
     private float _playbackSpeed = 1.0f;
     private string? _aspectRatio;
+    private float _bufferingPercentage;
+    private EqualizerSettings? _currentEqualizer;
 
     public PlaybackState State
     {
@@ -63,6 +65,8 @@ public class LibVlcPlaybackService : IPlaybackService
 
     public float PlaybackSpeed => _playbackSpeed;
     public string? AspectRatio => _aspectRatio;
+    public float BufferingPercentage => _bufferingPercentage;
+    public EqualizerSettings? CurrentEqualizer => _currentEqualizer;
 
     public object NativeMediaPlayer => _mediaPlayer;
 
@@ -83,6 +87,7 @@ public class LibVlcPlaybackService : IPlaybackService
 
     public event EventHandler<float>? PlaybackSpeedChanged;
     public event EventHandler<string?>? AspectRatioChanged;
+    public event EventHandler<float>? BufferingProgressChanged;
 
     public LibVlcPlaybackService()
     {
@@ -125,6 +130,8 @@ public class LibVlcPlaybackService : IPlaybackService
     {
         _mediaPlayer.Playing += (s, e) =>
         {
+            _bufferingPercentage = 100f;
+            BufferingProgressChanged?.Invoke(this, 100f);
             State = PlaybackState.Playing;
             RefreshTracks();
         };
@@ -136,17 +143,22 @@ public class LibVlcPlaybackService : IPlaybackService
 
         _mediaPlayer.Stopped += (s, e) =>
         {
+            _bufferingPercentage = 0f;
             State = PlaybackState.Stopped;
             ClearTracks();
         };
 
         _mediaPlayer.EndReached += (s, e) =>
         {
+            _bufferingPercentage = 0f;
             State = PlaybackState.Ended;
         };
 
         _mediaPlayer.Buffering += (s, e) =>
         {
+            _bufferingPercentage = e.Cache;
+            BufferingProgressChanged?.Invoke(this, e.Cache);
+
             if (State != PlaybackState.Playing && State != PlaybackState.Paused)
             {
                 State = PlaybackState.Buffering;
@@ -274,6 +286,8 @@ public class LibVlcPlaybackService : IPlaybackService
                 if (_currentMediaItem.IsNetworkStream)
                 {
                     _currentMedia = new Media(_libVlc, pathOrUrl, FromType.FromLocation);
+                    _currentMedia.AddOption(":network-caching=1500");
+                    _currentMedia.AddOption(":live-caching=1500");
                 }
                 else
                 {
@@ -285,6 +299,12 @@ public class LibVlcPlaybackService : IPlaybackService
 
                 _mediaPlayer.Media = _currentMedia;
                 _mediaPlayer.Play();
+
+                // Re-apply equalizer if active
+                if (_currentEqualizer != null && _currentEqualizer.IsEnabled)
+                {
+                    ApplyEqualizerInternal(_currentEqualizer);
+                }
 
                 // Apply current playback speed and aspect ratio
                 if (Math.Abs(_playbackSpeed - 1.0f) > 0.01f)
@@ -712,6 +732,116 @@ public class LibVlcPlaybackService : IPlaybackService
         {
             return $"0x{fourcc:X8}";
         }
+    }
+
+    public Task<Result> SetEqualizerAsync(EqualizerSettings settings)
+    {
+        return Task.Run(() =>
+        {
+            try
+            {
+                _currentEqualizer = settings;
+                if (!settings.IsEnabled)
+                {
+                    _mediaPlayer.SetEqualizer(null!);
+                    return Result.Success();
+                }
+
+                ApplyEqualizerInternal(settings);
+                Log.Information("Applied 10-band equalizer settings: Preset={Preset}, Enabled={Enabled}", settings.ActivePreset, settings.IsEnabled);
+                return Result.Success();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to apply equalizer settings");
+                return Result.Failure($"Equalizer error: {ex.Message}");
+            }
+        });
+    }
+
+    public Task<Result> DisableEqualizerAsync()
+    {
+        return Task.Run(() =>
+        {
+            try
+            {
+                if (_currentEqualizer != null)
+                {
+                    _currentEqualizer.IsEnabled = false;
+                }
+                _mediaPlayer.SetEqualizer(null!);
+                Log.Information("Equalizer disabled");
+                return Result.Success();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to disable equalizer");
+                return Result.Failure(ex.Message);
+            }
+        });
+    }
+
+    private void ApplyEqualizerInternal(EqualizerSettings settings)
+    {
+        var eq = new Equalizer();
+        eq.SetPreamp(Math.Clamp(settings.PreampGainDb, -20.0f, 20.0f));
+
+        for (uint i = 0; i < Math.Min(eq.BandCount, (uint)settings.BandGainsDb.Length); i++)
+        {
+            eq.SetAmp(Math.Clamp(settings.BandGainsDb[i], -20.0f, 20.0f), i);
+        }
+
+        _mediaPlayer.SetEqualizer(eq);
+    }
+
+    public Task<Result<string>> TakeSnapshotAsync(string? targetFilePath = null)
+    {
+        return Task.Run(() =>
+        {
+            try
+            {
+                if (State == PlaybackState.Stopped || State == PlaybackState.Error)
+                {
+                    return Result<string>.Failure("Cannot take snapshot: No active media loaded.");
+                }
+
+                if (string.IsNullOrWhiteSpace(targetFilePath))
+                {
+                    var picturesDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "NovaPlayer");
+                    if (!Directory.Exists(picturesDir))
+                    {
+                        Directory.CreateDirectory(picturesDir);
+                    }
+
+                    var title = _currentMediaItem?.Title ?? "Snapshot";
+                    var cleanTitle = string.Join("_", title.Split(Path.GetInvalidFileNameChars()));
+                    var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                    targetFilePath = Path.Combine(picturesDir, $"{cleanTitle}_{timestamp}.png");
+                }
+                else
+                {
+                    var dir = Path.GetDirectoryName(targetFilePath);
+                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+                }
+
+                var success = _mediaPlayer.TakeSnapshot(0, targetFilePath, 0, 0);
+                if (success)
+                {
+                    Log.Information("Video snapshot saved to {Path}", targetFilePath);
+                    return Result<string>.Success(targetFilePath);
+                }
+
+                return Result<string>.Failure("Native video snapshot failed. Ensure video is actively rendering.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Exception taking video snapshot to {Path}", targetFilePath);
+                return Result<string>.Failure($"Snapshot failed: {ex.Message}");
+            }
+        });
     }
 
     public void Dispose()

@@ -3,143 +3,139 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:converters="clr-namespace:Nova.App.Converters">
     <Application.Resources>
-        <!-- Converters -->
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        <converters:BooleanToDoubleConverter x:Key="BooleanToDoubleConverter" TrueValue="1.0" FalseValue="0.0" />
-        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
-        <converters:MillisecondsToTimeConverter x:Key="MillisecondsToTimeConverter" />
-        <converters:TabIndexToVisibilityConverter x:Key="TabIndexToVisibilityConverter" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/DarkTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
 
-        <!-- Modern Dark Theme Palette -->
-        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0F1117" />
-        <SolidColorBrush x:Key="SurfaceBrush" Color="#1A1D26" />
-        <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="#E613161F" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#3B82F6" />
-        <SolidColorBrush x:Key="AccentHoverBrush" Color="#60A5FA" />
-        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F3F4F6" />
-        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#9CA3AF" />
-        <SolidColorBrush x:Key="BorderBrush" Color="#2E3342" />
+            <!-- Converters -->
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+            <converters:BooleanToDoubleConverter x:Key="BooleanToDoubleConverter" TrueValue="1.0" FalseValue="0.0" />
+            <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+            <converters:MillisecondsToTimeConverter x:Key="MillisecondsToTimeConverter" />
+            <converters:TabIndexToVisibilityConverter x:Key="TabIndexToVisibilityConverter" />
 
-        <!-- Control Styles -->
-        <Style TargetType="{x:Type TextBox}">
-            <Setter Property="Background" Value="#1A1D26" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="8,5" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}" />
-        </Style>
+            <!-- Control Styles -->
+            <Style TargetType="{x:Type TextBox}">
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Padding" Value="8,5" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="CaretBrush" Value="{DynamicResource AccentBrush}" />
+            </Style>
 
-        <Style TargetType="{x:Type ListView}">
-            <Setter Property="Background" Value="#10131B" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True" />
-            <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling" />
-        </Style>
+            <Style TargetType="{x:Type ListView}">
+                <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True" />
+                <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling" />
+            </Style>
 
-        <Style TargetType="{x:Type ListBox}">
-            <Setter Property="Background" Value="#10131B" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True" />
-            <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling" />
-        </Style>
+            <Style TargetType="{x:Type ListBox}">
+                <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True" />
+                <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling" />
+            </Style>
 
-        <Style TargetType="{x:Type GridViewColumnHeader}">
-            <Setter Property="Background" Value="#1E2330" />
-            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="0,0,1,1" />
-            <Setter Property="Padding" Value="10,6" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="FontSize" Value="12" />
-        </Style>
+            <Style TargetType="{x:Type GridViewColumnHeader}">
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                <Setter Property="BorderThickness" Value="0,0,1,1" />
+                <Setter Property="Padding" Value="10,6" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="FontSize" Value="12" />
+            </Style>
 
-        <Style TargetType="{x:Type Button}">
-            <Setter Property="Background" Value="#252A38" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="12,6" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="Border"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="#33394D" />
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="{StaticResource AccentBrush}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+            <Style TargetType="{x:Type Button}">
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Padding" Value="12,6" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type Button}">
+                            <Border x:Name="Border"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Border" Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Border" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
-        <!-- Slider Style -->
-        <Style x:Key="ModernSliderThumb" TargetType="{x:Type Thumb}">
-            <Setter Property="SnapsToDevicePixels" Value="true" />
-            <Setter Property="OverridesDefaultStyle" Value="true" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type Thumb}">
-                        <Ellipse Width="14" Height="14" Fill="{StaticResource AccentBrush}" Stroke="#FFFFFF" StrokeThickness="1.5" />
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+            <!-- Slider Style -->
+            <Style x:Key="ModernSliderThumb" TargetType="{x:Type Thumb}">
+                <Setter Property="SnapsToDevicePixels" Value="true" />
+                <Setter Property="OverridesDefaultStyle" Value="true" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type Thumb}">
+                            <Ellipse Width="14" Height="14" Fill="{DynamicResource AccentBrush}" Stroke="#FFFFFF" StrokeThickness="1.5" />
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
 
-        <Style x:Key="ModernSeekSlider" TargetType="{x:Type Slider}">
-            <Setter Property="SnapsToDevicePixels" Value="True" />
-            <Setter Property="OverridesDefaultStyle" Value="True" />
-            <Setter Property="MinHeight" Value="24" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type Slider}">
-                        <Grid VerticalAlignment="Center">
-                            <Border Height="4" Background="#374151" CornerRadius="2" />
-                            <Track x:Name="PART_Track">
-                                <Track.DecreaseRepeatButton>
-                                    <RepeatButton Command="{x:Static Slider.DecreaseLarge}">
-                                        <RepeatButton.Template>
-                                            <ControlTemplate TargetType="{x:Type RepeatButton}">
-                                                <Border Height="4" Background="{StaticResource AccentBrush}" CornerRadius="2,0,0,2" />
-                                            </ControlTemplate>
-                                        </RepeatButton.Template>
-                                    </RepeatButton>
-                                </Track.DecreaseRepeatButton>
-                                <Track.Thumb>
-                                    <Thumb Style="{StaticResource ModernSliderThumb}" />
-                                </Track.Thumb>
-                                <Track.IncreaseRepeatButton>
-                                    <RepeatButton Command="{x:Static Slider.IncreaseLarge}">
-                                        <RepeatButton.Template>
-                                            <ControlTemplate TargetType="{x:Type RepeatButton}">
-                                                <Border Height="4" Background="Transparent" />
-                                            </ControlTemplate>
-                                        </RepeatButton.Template>
-                                    </RepeatButton>
-                                </Track.IncreaseRepeatButton>
-                            </Track>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+            <Style x:Key="ModernSeekSlider" TargetType="{x:Type Slider}">
+                <Setter Property="SnapsToDevicePixels" Value="True" />
+                <Setter Property="OverridesDefaultStyle" Value="True" />
+                <Setter Property="MinHeight" Value="24" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type Slider}">
+                            <Grid VerticalAlignment="Center">
+                                <Border Height="4" Background="#374151" CornerRadius="2" />
+                                <Track x:Name="PART_Track">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Command="{x:Static Slider.DecreaseLarge}">
+                                            <RepeatButton.Template>
+                                                <ControlTemplate TargetType="{x:Type RepeatButton}">
+                                                    <Border Height="4" Background="{DynamicResource AccentBrush}" CornerRadius="2,0,0,2" />
+                                                </ControlTemplate>
+                                            </RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Style="{StaticResource ModernSliderThumb}" />
+                                    </Track.Thumb>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Command="{x:Static Slider.IncreaseLarge}">
+                                            <RepeatButton.Template>
+                                                <ControlTemplate TargetType="{x:Type RepeatButton}">
+                                                    <Border Height="4" Background="Transparent" />
+                                                </ControlTemplate>
+                                            </RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.IncreaseRepeatButton>
+                                </Track>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

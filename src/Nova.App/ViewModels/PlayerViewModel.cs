@@ -21,6 +21,8 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     private DateTime _lastHistorySaveUtc = DateTime.MinValue;
 
     public event Action<MediaDetails>? ShowMediaInfoRequested;
+    public event Action? ShowEqualizerRequested;
+    public event Action? OpenUrlRequested;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WindowTitle))]
@@ -123,6 +125,23 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         ActiveTabIndex = index;
     }
 
+    // Phase 4: Buffering & Network
+    [ObservableProperty]
+    private float _bufferingPercentage;
+
+    [ObservableProperty]
+    private bool _isNetworkPlayback;
+
+    // Phase 4: Equalizer
+    public EqualizerViewModel Equalizer { get; }
+
+    // Phase 4: Mini-Player & Theming
+    [ObservableProperty]
+    private bool _isMiniPlayer;
+
+    [ObservableProperty]
+    private string _currentTheme = "Dark";
+
     // Phase 3: Playlist Queue
     [ObservableProperty]
     private ObservableCollection<string> _playbackQueue = new();
@@ -148,6 +167,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     {
         _playbackService = playbackService;
         _libraryRepository = libraryRepository;
+        Equalizer = new EqualizerViewModel(playbackService, libraryRepository);
 
         _overlayTimer = new DispatcherTimer
         {
@@ -162,6 +182,25 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         };
 
         SubscribePlaybackEvents();
+        _ = LoadInitialThemeAsync();
+    }
+
+    private async Task LoadInitialThemeAsync()
+    {
+        if (_libraryRepository == null) return;
+        try
+        {
+            var res = await _libraryRepository.GetSettingAsync("theme", "Dark");
+            if (res.IsSuccess && !string.IsNullOrWhiteSpace(res.Value))
+            {
+                CurrentTheme = res.Value;
+                Services.ThemeManager.ApplyTheme(CurrentTheme);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to load saved theme.");
+        }
     }
 
     private void SubscribePlaybackEvents()
@@ -183,6 +222,16 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
 
         _playbackService.PlaybackSpeedChanged += OnPlaybackSpeedChanged;
         _playbackService.AspectRatioChanged += OnAspectRatioChanged;
+        _playbackService.BufferingProgressChanged += OnBufferingProgressChanged;
+    }
+
+    private void OnBufferingProgressChanged(object? sender, float cache)
+    {
+        RunOnUi(() =>
+        {
+            BufferingPercentage = cache;
+            IsBuffering = cache < 100f;
+        });
     }
 
     private void OnStateChanged(object? sender, PlaybackState state)
@@ -192,6 +241,15 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
             IsPlaying = state == PlaybackState.Playing;
             IsPaused = state == PlaybackState.Paused;
             IsBuffering = state == PlaybackState.Buffering;
+
+            if (state == PlaybackState.Playing)
+            {
+                BufferingPercentage = 100f;
+            }
+            else if (state == PlaybackState.Stopped || state == PlaybackState.Ended)
+            {
+                BufferingPercentage = 0f;
+            }
 
             if (state == PlaybackState.Paused || state == PlaybackState.Ended)
             {
@@ -402,7 +460,13 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
         try
         {
             CurrentFilePath = filePath;
-            CurrentMediaTitle = Path.GetFileName(filePath);
+            IsNetworkPlayback = filePath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                                filePath.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+
+            CurrentMediaTitle = IsNetworkPlayback
+                ? filePath
+                : Path.GetFileName(filePath);
+
             StatusMessage = null;
             IsResumePromptVisible = false;
             PendingResumePositionMs = 0;
@@ -736,6 +800,79 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
+    public async Task PlayUrlAsync(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return;
+
+        var validation = UrlValidator.ValidateMediaUrl(url);
+        if (validation.IsFailure)
+        {
+            StatusMessage = validation.Error;
+            return;
+        }
+
+        ActiveTabIndex = 0;
+        await PlayFileAsync(validation.Value.AbsoluteUri);
+    }
+
+    [RelayCommand]
+    public void OpenUrl()
+    {
+        OpenUrlRequested?.Invoke();
+    }
+
+    [RelayCommand]
+    public void ShowEqualizer()
+    {
+        ShowEqualizerRequested?.Invoke();
+    }
+
+    [RelayCommand]
+    public async Task TakeSnapshotAsync()
+    {
+        var result = await _playbackService.TakeSnapshotAsync();
+        if (result.IsSuccess)
+        {
+            StatusMessage = $"Snapshot saved: {Path.GetFileName(result.Value)}";
+        }
+        else
+        {
+            StatusMessage = result.Error;
+        }
+        TriggerUserActivity();
+    }
+
+    [RelayCommand]
+    public async Task ToggleThemeAsync()
+    {
+        Services.ThemeManager.ToggleTheme();
+        CurrentTheme = Services.ThemeManager.CurrentTheme;
+        StatusMessage = $"Theme: {CurrentTheme}";
+
+        if (_libraryRepository != null)
+        {
+            await _libraryRepository.SetSettingAsync("theme", CurrentTheme);
+        }
+    }
+
+    [RelayCommand]
+    public void ToggleMiniPlayer()
+    {
+        IsMiniPlayer = !IsMiniPlayer;
+        TriggerUserActivity();
+    }
+
+    [RelayCommand]
+    public void ExitMiniPlayer()
+    {
+        if (IsMiniPlayer)
+        {
+            IsMiniPlayer = false;
+            TriggerUserActivity();
+        }
+    }
+
+    [RelayCommand]
     public async Task ShowMediaInfoAsync()
     {
         var result = await _playbackService.GetMediaDetailsAsync();
@@ -803,6 +940,7 @@ public partial class PlayerViewModel : ObservableObject, IDisposable
 
         _playbackService.PlaybackSpeedChanged -= OnPlaybackSpeedChanged;
         _playbackService.AspectRatioChanged -= OnAspectRatioChanged;
+        _playbackService.BufferingProgressChanged -= OnBufferingProgressChanged;
 
         _playbackService.Dispose();
     }

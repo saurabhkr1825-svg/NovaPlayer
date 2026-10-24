@@ -10,14 +10,14 @@
         Title="{Binding WindowTitle}"
         Height="720" Width="1160"
         MinHeight="480" MinWidth="750"
-        Background="{StaticResource AppBackgroundBrush}"
+        Background="{DynamicResource AppBackgroundBrush}"
         WindowStartupLocation="CenterScreen"
         AllowDrop="True"
         Drop="OnWindowDrop"
         PreviewKeyDown="OnWindowKeyDown"
         MouseMove="OnWindowMouseMove">
 
-    <Grid Background="#0A0B0E">
+    <Grid Background="{DynamicResource AppBackgroundBrush}">
         <Grid.RowDefinitions>
             <!-- TOP GLOBAL NAVIGATION BAR -->
             <RowDefinition Height="Auto" />
@@ -27,11 +27,23 @@
 
         <!-- TOP GLOBAL NAVIGATION BAR -->
         <Border Grid.Row="0"
-                Background="#13161F"
+                Background="{DynamicResource SurfaceAltBrush}"
                 Padding="16,8"
-                BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="0,0,0,1"
-                Visibility="{Binding IsFullscreen, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsFullscreen}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsMiniPlayer}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -43,7 +55,7 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="NOVAPLAYER"
                                FontWeight="ExtraBold"
-                               Foreground="{StaticResource AccentBrush}"
+                               Foreground="{DynamicResource AccentBrush}"
                                FontSize="14"
                                Margin="0,0,20,0"
                                VerticalAlignment="Center"/>
@@ -86,16 +98,51 @@
                                Foreground="#F59E0B"
                                FontSize="12"
                                TextTrimming="CharacterEllipsis"
-                               MaxWidth="350"/>
+                               MaxWidth="300"/>
                 </StackPanel>
 
                 <!-- Right: Action Buttons -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="🌐 Stream URL"
+                            Command="{Binding OpenUrlCommand}"
+                            Padding="10,5"
+                            FontSize="12"
+                            Margin="0,0,6,0"
+                            ToolTip="Open Network Media Stream (HLS, DASH, Direct HTTP/S) (U)" />
+
+                    <Button Content="🎚 Equalizer"
+                            Command="{Binding ShowEqualizerCommand}"
+                            Padding="10,5"
+                            FontSize="12"
+                            Margin="0,0,6,0"
+                            ToolTip="10-Band Graphic Audio Equalizer (E)" />
+
+                    <Button Content="📷 Snapshot"
+                            Command="{Binding TakeSnapshotCommand}"
+                            Padding="10,5"
+                            FontSize="12"
+                            Margin="0,0,6,0"
+                            ToolTip="Capture Frame to Pictures\NovaPlayer (Shift+S)" />
+
+                    <Button Content="🌓 Theme"
+                            Command="{Binding ToggleThemeCommand}"
+                            Padding="10,5"
+                            FontSize="12"
+                            Margin="0,0,6,0"
+                            ToolTip="Toggle Light / Dark Theme (T)" />
+
+                    <Button Content="🗗 Mini-Player"
+                            Command="{Binding ToggleMiniPlayerCommand}"
+                            Padding="10,5"
+                            FontSize="12"
+                            Margin="0,0,6,0"
+                            ToolTip="Switch to Floating Mini-Player Mode (F9)" />
+
                     <Button Content="ℹ Media Info"
                             Command="{Binding ShowMediaInfoCommand}"
                             Padding="10,5"
                             FontSize="12"
-                            Margin="0,0,8,0"
+                            Margin="0,0,6,0"
                             ToolTip="View Media &amp; Codec Specifications (I)" />
 
                     <Button Content="📂 Open File"
@@ -127,11 +174,21 @@
 
                     <!-- TOP OVERLAY BAR (Fullscreen mode & title) -->
                     <Border Grid.Row="0"
-                            Background="{StaticResource OverlayBackgroundBrush}"
+                            Background="{DynamicResource OverlayBackgroundBrush}"
                             Padding="16,8"
-                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="0,0,0,1"
                             Opacity="{Binding IsOverlayVisible, Converter={StaticResource BooleanToDoubleConverter}}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMiniPlayer}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -140,7 +197,7 @@
 
                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding CurrentMediaTitle}"
-                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
                                            FontSize="13"
                                            TextTrimming="CharacterEllipsis"
                                            MaxWidth="600"
@@ -162,7 +219,7 @@
                         <!-- Floating Resume Prompt Banner -->
                         <Border Visibility="{Binding IsResumePromptVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
                                 Background="#E61E2433"
-                                BorderBrush="{StaticResource AccentBrush}"
+                                BorderBrush="{DynamicResource AccentBrush}"
                                 BorderThickness="1.5"
                                 CornerRadius="8"
                                 Padding="16,10"
@@ -170,9 +227,9 @@
                                 VerticalAlignment="Top"
                                 Margin="0,24,0,0">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="⏱ " FontSize="15" VerticalAlignment="Center" Foreground="{StaticResource AccentBrush}"/>
+                                <TextBlock Text="⏱ " FontSize="15" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}"/>
                                 <TextBlock Text="{Binding ResumePromptText}"
-                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
                                            FontWeight="SemiBold"
                                            FontSize="13"
                                            Margin="4,0,16,0"
@@ -180,7 +237,7 @@
 
                                 <Button Content="▶ Resume"
                                         Command="{Binding ResumePlaybackCommand}"
-                                        Background="{StaticResource AccentBrush}"
+                                        Background="{DynamicResource AccentBrush}"
                                         FontWeight="SemiBold"
                                         Padding="12,5"
                                         Margin="0,0,8,0"/>
@@ -192,26 +249,42 @@
                         </Border>
 
                         <!-- Buffering Indicator -->
-                        <Border Background="#B3000000"
+                        <Border Background="#CC000000"
                                 CornerRadius="8"
                                 Padding="20,12"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
                                 Visibility="{Binding IsBuffering, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <TextBlock Text="⏳ Buffering..."
-                                       Foreground="{StaticResource TextPrimaryBrush}"
-                                       FontSize="14"
-                                       FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="⏳ Buffering: "
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding BufferingPercentage, StringFormat='{}{0:0}%'}"
+                                           Foreground="{DynamicResource AccentBrush}"
+                                           FontSize="14"
+                                           FontWeight="Bold"/>
+                            </StackPanel>
                         </Border>
                     </Grid>
 
                     <!-- BOTTOM CONTROLS BAR -->
                     <Border Grid.Row="2"
-                            Background="{StaticResource OverlayBackgroundBrush}"
+                            Background="{DynamicResource OverlayBackgroundBrush}"
                             Padding="16,8"
-                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="0,1,0,0"
                             Opacity="{Binding IsOverlayVisible, Converter={StaticResource BooleanToDoubleConverter}}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMiniPlayer}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -292,14 +365,14 @@
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
                                                     <Setter Property="Text" Value="🔁" />
-                                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding RepeatMode}" Value="RepeatAll">
-                                                            <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding RepeatMode}" Value="RepeatOne">
                                                             <Setter Property="Text" Value="🔂" />
-                                                            <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                                            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -311,16 +384,16 @@
                                 <!-- Time Elapsed / Total Duration -->
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding CurrentTimeText}"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
                                                FontSize="13"
                                                FontWeight="SemiBold"
                                                VerticalAlignment="Center"/>
                                     <TextBlock Text=" / "
-                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
                                                FontSize="13"
                                                VerticalAlignment="Center"/>
                                     <TextBlock Text="{Binding TotalTimeText}"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
                                                FontSize="13"
                                                VerticalAlignment="Center"/>
                                 </StackPanel>
@@ -392,12 +465,137 @@
                             </Grid>
                         </Grid>
                     </Border>
+
+                    <!-- FLOATING MINI-PLAYER OVERLAY -->
+                    <Grid Grid.RowSpan="3"
+                          Visibility="{Binding IsMiniPlayer, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          Opacity="{Binding IsOverlayVisible, Converter={StaticResource BooleanToDoubleConverter}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Mini-Player Header Bar (Draggable) -->
+                        <Border Grid.Row="0"
+                                Background="#E613161F"
+                                Padding="8,4"
+                                MouseLeftButtonDown="OnMiniPlayerHeaderMouseDown">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding CurrentMediaTitle}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center"
+                                           Margin="4,0,8,0" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button Content="🗖"
+                                            Command="{Binding ExitMiniPlayerCommand}"
+                                            Width="24" Height="22"
+                                            FontSize="11"
+                                            Padding="0"
+                                            Margin="0,0,4,0"
+                                            ToolTip="Exit Mini-Player (F9 / Esc)" />
+                                    <Button Content="✕"
+                                            Click="OnMiniPlayerCloseClick"
+                                            Width="24" Height="22"
+                                            FontSize="11"
+                                            Padding="0"
+                                            ToolTip="Close Player" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Mini-Player Bottom Bar -->
+                        <Border Grid.Row="2"
+                                Background="#E613161F"
+                                Padding="8,4">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Slider Grid.Row="0"
+                                        Style="{StaticResource ModernSeekSlider}"
+                                        Minimum="0"
+                                        Maximum="{Binding TotalDurationMs}"
+                                        Value="{Binding CurrentPositionMs, Mode=TwoWay}"
+                                        PreviewMouseDown="OnSeekSliderMouseDown"
+                                        PreviewMouseUp="OnSeekSliderMouseUp"
+                                        Margin="0,0,0,4" />
+                                <Grid Grid.Row="1">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                        <Button Command="{Binding PlayPauseCommand}"
+                                                Width="28" Height="24"
+                                                FontSize="10"
+                                                Margin="0,0,4,0">
+                                            <TextBlock>
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="▶" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsPlaying}" Value="True">
+                                                                <Setter Property="Text" Value="⏸" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Button>
+                                        <TextBlock Text="{Binding CurrentTimeText}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   FontSize="10"
+                                                   VerticalAlignment="Center"
+                                                   Margin="2,0,0,0" />
+                                        <TextBlock Text=" / "
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   FontSize="10"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding TotalTimeText}"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   FontSize="10"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <Button Command="{Binding ToggleMuteCommand}"
+                                                Width="28" Height="24"
+                                                FontSize="10"
+                                                Margin="0,0,4,0"
+                                                ToolTip="Mute">
+                                            <TextBlock>
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="🔊" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsMuted}" Value="True">
+                                                                <Setter Property="Text" Value="🔇" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Button>
+                                        <Button Content="🗖"
+                                                Command="{Binding ExitMiniPlayerCommand}"
+                                                Width="28" Height="24"
+                                                FontSize="10"
+                                                ToolTip="Exit Mini-Player (F9 / Esc)" />
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Grid>
             </vlc:VideoView>
 
             <!-- 2. MEDIA LIBRARY VIEW (Tab 1) -->
             <Border Visibility="{Binding ActiveTabIndex, Converter={StaticResource TabIndexToVisibilityConverter}, ConverterParameter=1}"
-                    Background="#0F1117"
+                    Background="{DynamicResource AppBackgroundBrush}"
                     Padding="20">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -554,7 +752,7 @@
 
             <!-- 3. PLAYLISTS VIEW (Tab 2) -->
             <Border Visibility="{Binding ActiveTabIndex, Converter={StaticResource TabIndexToVisibilityConverter}, ConverterParameter=2}"
-                    Background="#0F1117"
+                    Background="{DynamicResource AppBackgroundBrush}"
                     Padding="20">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -702,7 +900,7 @@
 
             <!-- 4. PLAYBACK HISTORY VIEW (Tab 3) -->
             <Border Visibility="{Binding ActiveTabIndex, Converter={StaticResource TabIndexToVisibilityConverter}, ConverterParameter=3}"
-                    Background="#0F1117"
+                    Background="{DynamicResource AppBackgroundBrush}"
                     Padding="20">
                 <Grid>
                     <Grid.RowDefinitions>

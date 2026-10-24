@@ -1,0 +1,64 @@
+<Window x:Class="Nova.App.Views.Dialogs.OpenUrlDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Open Network Stream — NovaPlayer"
+        Height="230" Width="520"
+        MinHeight="230" MinWidth="520"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceBrush}"
+        WindowStyle="ToolWindow"
+        ResizeMode="NoResize">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="Enter a network media URL to stream (HTTP / HTTPS / HLS / DASH):"
+                   Foreground="{DynamicResource TextPrimaryBrush}"
+                   FontWeight="SemiBold"
+                   FontSize="13"
+                   Margin="0,0,0,8"/>
+
+        <TextBox x:Name="UrlTextBox"
+                 Grid.Row="1"
+                 Height="32"
+                 VerticalContentAlignment="Center"
+                 Padding="8,0"
+                 KeyDown="OnTextBoxKeyDown"
+                 ToolTip="e.g. https://example.com/live/stream.m3u8"/>
+
+        <TextBlock x:Name="ErrorLabel"
+                   Grid.Row="2"
+                   Foreground="#EF4444"
+                   FontSize="12"
+                   Margin="0,4,0,0"
+                   Visibility="Collapsed"/>
+
+        <TextBlock Grid.Row="3"
+                   Text="Supports direct MP4/MKV video files, MP3/AAC audio, HLS (.m3u8), and MPEG-DASH (.mpd)."
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   FontSize="11"
+                   Margin="0,6,0,0"/>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="▶ Play Stream"
+                    IsDefault="True"
+                    Click="OnPlayClick"
+                    Background="{DynamicResource AccentBrush}"
+                    FontWeight="SemiBold"
+                    Padding="16,6"
+                    Margin="0,0,8,0"/>
+
+            <Button Content="Cancel"
+                    IsCancel="True"
+                    Click="OnCancelClick"
+                    Padding="14,6"/>
+        </StackPanel>
+    </Grid>
+</Window>

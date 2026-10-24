@@ -15,6 +15,15 @@ public partial class MainWindow : Window
     private WindowState _previousState = WindowState.Normal;
     private ResizeMode _previousResizeMode = ResizeMode.CanResize;
 
+    private bool _isMiniPlayerActive;
+    private double _normalWidth = 1160;
+    private double _normalHeight = 720;
+    private double _normalLeft = 100;
+    private double _normalTop = 100;
+    private WindowStyle _normalStyle = WindowStyle.SingleBorderWindow;
+    private ResizeMode _normalResizeMode = ResizeMode.CanResize;
+    private bool _normalTopmost;
+
     public MainWindow(PlayerViewModel viewModel, LibraryViewModel? libraryViewModel = null)
     {
         InitializeComponent();
@@ -39,6 +48,8 @@ public partial class MainWindow : Window
 
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _viewModel.ShowMediaInfoRequested += OnShowMediaInfoRequested;
+        _viewModel.ShowEqualizerRequested += OnShowEqualizerRequested;
+        _viewModel.OpenUrlRequested += OnOpenUrlRequested;
     }
 
     private void OnShowMediaInfoRequested(MediaDetails details)
@@ -50,12 +61,94 @@ public partial class MainWindow : Window
         dialog.ShowDialog();
     }
 
+    private void OnShowEqualizerRequested()
+    {
+        var dialog = new EqualizerDialog(_viewModel.Equalizer)
+        {
+            Owner = this
+        };
+        dialog.ShowDialog();
+    }
+
+    private void OnOpenUrlRequested()
+    {
+        var dialog = new OpenUrlDialog
+        {
+            Owner = this
+        };
+        if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.ValidatedUrl))
+        {
+            _viewModel.ActiveTabIndex = 0;
+            _ = _viewModel.PlayUrlAsync(dialog.ValidatedUrl);
+        }
+    }
+
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(PlayerViewModel.IsFullscreen))
         {
             ApplyFullscreenState(_viewModel.IsFullscreen);
         }
+        else if (e.PropertyName == nameof(PlayerViewModel.IsMiniPlayer))
+        {
+            ApplyMiniPlayerState(_viewModel.IsMiniPlayer);
+        }
+    }
+
+    private void ApplyMiniPlayerState(bool isMini)
+    {
+        if (isMini)
+        {
+            if (!_isMiniPlayerActive)
+            {
+                _isMiniPlayerActive = true;
+                _normalWidth = Width;
+                _normalHeight = Height;
+                _normalLeft = Left;
+                _normalTop = Top;
+                _normalStyle = WindowStyle;
+                _normalResizeMode = ResizeMode;
+                _normalTopmost = Topmost;
+
+                WindowStyle = WindowStyle.None;
+                ResizeMode = ResizeMode.CanResizeWithGrip;
+                Topmost = true;
+
+                Width = 420;
+                Height = 240;
+
+                var workArea = SystemParameters.WorkArea;
+                Left = Math.Max(0, workArea.Right - Width - 30);
+                Top = Math.Max(0, workArea.Bottom - Height - 50);
+            }
+        }
+        else
+        {
+            if (_isMiniPlayerActive)
+            {
+                _isMiniPlayerActive = false;
+                Topmost = _normalTopmost;
+                WindowStyle = _normalStyle;
+                ResizeMode = _normalResizeMode;
+                Width = _normalWidth > 100 ? _normalWidth : 1160;
+                Height = _normalHeight > 100 ? _normalHeight : 720;
+                Left = _normalLeft;
+                Top = _normalTop;
+            }
+        }
+    }
+
+    private void OnMiniPlayerHeaderMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
+    }
+
+    private void OnMiniPlayerCloseClick(object sender, RoutedEventArgs e)
+    {
+        Close();
     }
 
     private void ApplyFullscreenState(bool isFullscreen)
@@ -149,7 +242,12 @@ public partial class MainWindow : Window
                 break;
 
             case Key.Escape:
-                if (_viewModel.IsFullscreen)
+                if (_viewModel.IsMiniPlayer)
+                {
+                    _viewModel.ExitMiniPlayer();
+                    e.Handled = true;
+                }
+                else if (_viewModel.IsFullscreen)
                 {
                     _viewModel.ExitFullscreenCommand.Execute(null);
                     e.Handled = true;
@@ -158,6 +256,26 @@ public partial class MainWindow : Window
 
             case Key.I:
                 _viewModel.ShowMediaInfoCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            case Key.U:
+                _viewModel.OpenUrl();
+                e.Handled = true;
+                break;
+
+            case Key.E:
+                _viewModel.ShowEqualizer();
+                e.Handled = true;
+                break;
+
+            case Key.T:
+                _ = _viewModel.ToggleThemeAsync();
+                e.Handled = true;
+                break;
+
+            case Key.F9:
+                _viewModel.ToggleMiniPlayer();
                 e.Handled = true;
                 break;
 
@@ -182,7 +300,14 @@ public partial class MainWindow : Window
                 break;
 
             case Key.S:
-                CycleSubtitleTrack();
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+                {
+                    _ = _viewModel.TakeSnapshotAsync();
+                }
+                else
+                {
+                    CycleSubtitleTrack();
+                }
                 e.Handled = true;
                 break;
 
@@ -593,6 +718,8 @@ public partial class MainWindow : Window
     {
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _viewModel.ShowMediaInfoRequested -= OnShowMediaInfoRequested;
+        _viewModel.ShowEqualizerRequested -= OnShowEqualizerRequested;
+        _viewModel.OpenUrlRequested -= OnOpenUrlRequested;
         _viewModel.Library?.Dispose();
         _viewModel.Dispose();
         base.OnClosing(e);

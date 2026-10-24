@@ -3,7 +3,7 @@
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue.svg)](https://microsoft.com/windows)
 [![Runtime: .NET 8 LTS](https://img.shields.io/badge/.NET-8.0%20LTS-purple.svg)](https://dotnet.microsoft.com/)
 [![Engine: LibVLC](https://img.shields.io/badge/Playback%20Engine-LibVLC%203.x-orange.svg)](https://www.videolan.org/)
-[![Status: Phase 2 Complete](https://img.shields.io/badge/Status-Phase%202%20Complete-green.svg)]()
+[![Status: Phase 4 Complete](https://img.shields.io/badge/Status-Phase%204%20Complete-green.svg)]()
 
 NovaPlayer is a modern, high-performance Windows desktop media player crafted in C# and WPF, powered by the industry-leading LibVLC playback engine. NovaPlayer delivers the codec resilience and playback fidelity of VLC wrapped in an intuitive, fluid interface adhering to modern Windows desktop ergonomics.
 
@@ -12,8 +12,8 @@ NovaPlayer is a modern, high-performance Windows desktop media player crafted in
 ## 🚀 Implementation Status
 
 > [!NOTE]
-> **Phase 2 (Advanced Playback & Web-DL Codec Support) is COMPLETE.**
-> NovaPlayer supports local audio/video playback, multi-audio switching, audio delay sync (-5000 to +5000ms), embedded and external subtitles with auto-discovery, variable playback speed (0.25×–4×), aspect ratio scaling, media information inspection, and verified Web-DL playback (H.264, HEVC 10-bit, AV1, E-AC3 5.1).
+> **Phase 4 (Network Playback, Audio Equalizer, Mini-Player, Video Snapshots & Theming) is COMPLETE.**
+> NovaPlayer features direct HTTP/HTTPS streaming with HLS and MPEG-DASH support, buffering telemetry, a 10-band graphic equalizer with presets and SQLite persistence, a seamless floating mini-player mode, video frame snapshots (`Shift+S`), and instant Dark/Light theme switching without restart.
 
 | Feature Area | Planned | Implemented | Target Phase |
 | :--- | :---: | :---: | :--- |
@@ -25,12 +25,14 @@ NovaPlayer is a modern, high-performance Windows desktop media player crafted in
 | **Web-DL Codecs (HEVC 10-bit, AV1, E-AC3 5.1)** | Yes | ✅ **Implemented** | Phase 2 |
 | **Variable Speed (0.25x-4x) & Aspect Ratios** | Yes | ✅ **Implemented** | Phase 2 |
 | **Media Information Inspector Dialog** | Yes | ✅ **Implemented** | Phase 2 |
-| **Media Library & SQLite Persistence**| Yes | ⏳ *Planned* | Phase 3 |
-| **Playlists & Playback History** | Yes | ⏳ *Planned* | Phase 3 |
-| **Smart Playback Resume** | Yes | ⏳ *Planned* | Phase 3 |
-| **Network Streaming (HLS / DASH)** | Yes | ⏳ *Planned* | Phase 4 |
-| **10-Band Graphic Equalizer** | Yes | ⏳ *Planned* | Phase 4 |
-| **Mini-Player & Fluent Themes** | Yes | ⏳ *Planned* | Phase 4 |
+| **Media Library & SQLite Persistence**| Yes | ✅ **Implemented** | Phase 3 |
+| **Playlists & Playback History** | Yes | ✅ **Implemented** | Phase 3 |
+| **Smart Playback Resume** | Yes | ✅ **Implemented** | Phase 3 |
+| **Network Streaming (HLS / DASH / HTTP/S)** | Yes | ✅ **Implemented** | Phase 4 |
+| **10-Band Graphic Equalizer** | Yes | ✅ **Implemented** | Phase 4 |
+| **Floating Mini-Player Mode** | Yes | ✅ **Implemented** | Phase 4 |
+| **Video Frame Snapshot Tool** | Yes | ✅ **Implemented** | Phase 4 |
+| **Runtime Dark & Light Themes** | Yes | ✅ **Implemented** | Phase 4 |
 | **Resumable Media Downloader** | Yes | ⏳ *Planned* | Phase 5 |
 | **WiX Windows Installer (MSI)** | Yes | ⏳ *Planned* | Phase 6 |
 

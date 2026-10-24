@@ -49,6 +49,10 @@ public interface IPlaybackService : IDisposable
     float PlaybackSpeed { get; }
     string? AspectRatio { get; }
 
+    // Phase 4: Buffering & Equalizer
+    float BufferingPercentage { get; }
+    EqualizerSettings? CurrentEqualizer { get; }
+
     // Events
     event EventHandler<PlaybackState>? StateChanged;
     event EventHandler<PlaybackPositionEventArgs>? PositionChanged;
@@ -67,6 +71,7 @@ public interface IPlaybackService : IDisposable
 
     event EventHandler<float>? PlaybackSpeedChanged;
     event EventHandler<string?>? AspectRatioChanged;
+    event EventHandler<float>? BufferingProgressChanged;
 
     // Playback Control Operations
     Task<Result> PlayAsync(string pathOrUrl, long startPositionMs = 0);
@@ -86,6 +91,11 @@ public interface IPlaybackService : IDisposable
     Task<Result> SetPlaybackSpeedAsync(float speed);
     Task<Result> SetAspectRatioAsync(string? aspectRatio);
     Task<Result<MediaDetails>> GetMediaDetailsAsync();
+
+    // Phase 4: Equalizer & Snapshot
+    Task<Result> SetEqualizerAsync(EqualizerSettings settings);
+    Task<Result> DisableEqualizerAsync();
+    Task<Result<string>> TakeSnapshotAsync(string? targetFilePath = null);
 
     // Direct MediaPlayer access for UI VideoView binding
     object NativeMediaPlayer { get; }
