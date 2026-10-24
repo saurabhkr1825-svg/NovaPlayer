@@ -1,0 +1,23 @@
+## Build and Output
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+msbuild.log
+test_sample.mp4
+sample_webdl_*
+subtitles_sample.srt
+
+## Packages
+*.nupkg
+packages/
+
+## Visual Studio
+.vs/
+.vscode/
+
+## Crash Dumps & Logs
+*.log
+*.dmp
